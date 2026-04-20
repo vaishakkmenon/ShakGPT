@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShakGPT — Project Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --success: #10b981;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header {
+    margin-bottom: 48px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-tag::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 560px;
+    border-left: 2px solid var(--border);
+    padding-left: 16px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .stat {
+    flex: 1;
+    padding: 18px 20px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+
+  /* Track tabs */
+  .tracks {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .track-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .track-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .track-btn:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .track-section { display: none; }
+  .track-section.active { display: block; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 14px;
+    margin-top: 32px;
+  }
+
+  .section-label:first-child { margin-top: 0; }
+
+  .phase {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.2s;
+  }
+
+  .phase:hover { border-color: var(--accent2); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .phase-number {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--bg);
+    background: var(--accent);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .pn-purple { background: var(--accent2) !important; }
+  .pn-amber  { background: var(--accent3) !important; color: #000 !important; }
+  .pn-green  { background: var(--success) !important; color: #000 !important; }
+  .pn-red    { background: #f43f5e !important; }
+  .pn-violet { background: #8b5cf6 !important; }
+  .pn-teal   { background: #0d9488 !important; }
+  .pn-pink   { background: #ec4899 !important; }
+  .pn-sky    { background: #0ea5e9 !important; }
+
+  .phase-title-block { flex: 1; }
+
+  .phase-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+
+  .phase-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .phase-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .phase-body {
+    padding: 0 20px 20px 20px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .phase-body.open { display: block; }
+
+  .phase-desc {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.8;
+    padding: 14px 0 18px 0;
+  }
+
+  .tasks { display: flex; flex-direction: column; gap: 8px; }
+
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .task-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+  .task-content { flex: 1; }
+
+  .task-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .task-detail {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .task-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0,229,255,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.15);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .task-tag.purple { background: rgba(124,58,237,0.1); color: #a78bfa; border-color: rgba(124,58,237,0.2); }
+  .task-tag.amber  { background: rgba(245,158,11,0.1); color: var(--accent3); border-color: rgba(245,158,11,0.2); }
+  .task-tag.green  { background: rgba(16,185,129,0.1); color: var(--success); border-color: rgba(16,185,129,0.2); }
+  .task-tag.red    { background: rgba(244,63,94,0.1); color: #fb7185; border-color: rgba(244,63,94,0.2); }
+  .task-tag.sky    { background: rgba(14,165,233,0.1); color: #38bdf8; border-color: rgba(14,165,233,0.2); }
+
+  .tip {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-left: 2px solid var(--accent3);
+    background: rgba(245,158,11,0.05);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .tip strong { color: var(--accent3); }
+
+  .resources {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .resources-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .resource-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .resource {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+  }
+
+  .timeline {
+    margin-top: 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 24px;
+    animation: fadeUp 0.6s 0.8s ease both;
+  }
+
+  .timeline-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .timeline-row:last-child { margin-bottom: 0; }
+
+  .timeline-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 170px;
+    flex-shrink: 0;
+  }
+
+  .timeline-bar-wrap {
+    flex: 1;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .timeline-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+
+  .timeline-bar.p { background: var(--accent2); }
+  .timeline-bar.a { background: var(--accent3); }
+  .timeline-bar.g { background: var(--success); }
+  .timeline-bar.r { background: #f43f5e; }
+  .timeline-bar.v { background: #8b5cf6; }
+  .timeline-bar.t { background: #0d9488; }
+  .timeline-bar.k { background: #ec4899; }
+
+  .timeline-dur {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    width: 90px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-tag">Build Plan v2.0</div>
+    <h1>ShakGPT<br><span>Project Roadmap</span></h1>
+    <p class="subtitle">A full end-to-end plan for building, training, and studying a 350M parameter LLM with long context, document understanding, chat capability, and interpretability research tooling.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val">350M</div>
+      <div class="stat-label">Parameters</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">16K</div>
+      <div class="stat-label">Context Length</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">~$65–160</div>
+      <div class="stat-label">Training Cost</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">2 Tracks</div>
+      <div class="stat-label">Build + Research</div>
+    </div>
+  </div>
+
+  <div class="tracks">
+    <button class="track-btn active" onclick="switchTrack('build', this)">Build Track</button>
+    <button class="track-btn" onclick="switchTrack('research', this)">Research Track</button>
+  </div>
+
+  <!-- BUILD TRACK -->
+  <div class="track-section active" id="track-build">
+
+    <div class="section-label">// Foundation</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number">1</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Environment + Repository</div>
+          <div class="phase-meta">Python 3.13, venv, .gitignore, requirements.txt</div>
+        </div>
+        <div class="phase-badge">Complete</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Local development environment is set up. PyTorch 2.6 + CUDA 12.4 verified on RTX 3070 Laptop GPU (8GB). Repository scaffolded with model/, data/, tokenizer/ directories.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">✓</div>
+            <div class="task-content">
+              <div class="task-name">Python 3.13 + venv</div>
+              <div class="task-detail">torch.cuda.is_available() returns True. torch 2.6.0+cu124 confirmed.</div>
+            </div>
+            <div class="task-tag green">Done</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">✓</div>
+            <div class="task-content">
+              <div class="task-name">.gitignore + requirements.txt</div>
+              <div class="task-detail">Core ignores in place. pip freeze to lock versions once all packages installed.</div>
+            </div>
+            <div class="task-tag green">Done</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">install.sh for Vast.ai instance</div>
+              <div class="task-detail">Script that installs torch with correct CUDA index URL then remaining requirements. Ensures cloud environment matches local exactly.</div>
+            </div>
+            <div class="task-tag amber">Next</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">// Architecture</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-purple">2</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Model Config + ModelConfig dataclass</div>
+          <div class="phase-meta">Single source of truth for all hyperparameters</div>
+        </div>
+        <div class="phase-badge">Up next</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Before writing any neural network code, define the ModelConfig dataclass. Every component reads from this — changing one value updates the entire model. Key values: d_model=1024, n_layers=24, n_heads=16, n_kv_heads=8, ffn_hidden=2752, max_seq_len=16384, vocab_size=32768, rope_theta=500000.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Write ModelConfig in model/config.py</div>
+              <div class="task-detail">Use Python dataclass decorator. Define all architecture hyperparameters with correct defaults. Understand what each value means before writing it.</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+        </div>
+        <div class="tip"><strong>Learning note:</strong> A config is a single source of truth. Every component takes a config object instead of hardcoded numbers. Changing d_model in one place updates the entire model automatically.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-amber">3</div>
+        <div class="phase-title-block">
+          <div class="phase-title">RMSNorm</div>
+          <div class="phase-meta">Normalisation layer — stability mechanism between blocks</div>
+        </div>
+        <div class="phase-badge">1–2 hrs</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Simplest component. Rescales token vectors to keep values in a stable range as they flow through 24 layers. Without it values explode or vanish by layer 20. Pre-norm placement means it runs before attention and before FFN in each block.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Implement RMSNorm as nn.Module</div>
+              <div class="task-detail">Divides by root mean square of the vector. One learnable scale parameter (gamma). No bias (beta) needed. eps=1e-5 for numerical stability.</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-green">4</div>
+        <div class="phase-title-block">
+          <div class="phase-title">RoPE — Rotary Positional Encoding</div>
+          <div class="phase-meta">Gives the model a sense of token position and distance</div>
+        </div>
+        <div class="phase-badge">2–4 hrs</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Without positional encoding, "dog bites man" and "man bites dog" look identical to attention — same tokens, different order. RoPE rotates token vectors by an angle proportional to their position. Tokens close together get similar rotations, tokens far apart get very different rotations. theta=500000 (LLaMA-3 value) enables good generalisation at 16K context.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Precompute cos/sin frequency tables</div>
+              <div class="task-detail">Compute once at model init and register as buffers so they move with .to(device). Shape: (max_seq_len, head_dim // 2).</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">apply_rope function</div>
+              <div class="task-detail">Splits head_dim in half, applies rotation to query and key vectors. Applied inside attention, not to value vectors.</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-red">5</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Grouped Query Attention (GQA)</div>
+          <div class="phase-meta">The core mechanism — tokens talk to each other</div>
+        </div>
+        <div class="phase-badge">1–2 days</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">The most complex component. Each token produces Query, Key, Value vectors via learned weight matrices. Query/Key dot products produce attention scores — how much each token should attend to every other token. GQA uses 16 query heads but only 8 KV heads, halving KV cache size at 16K context. Flash Attention 2 via F.scaled_dot_product_attention handles the efficient computation.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Q, K, V projections (no bias)</div>
+              <div class="task-detail">q_proj: d_model → n_heads * head_dim. k_proj and v_proj: d_model → n_kv_heads * head_dim. This asymmetry is the GQA part.</div>
+            </div>
+            <div class="task-tag red">Core</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Apply RoPE to Q and K</div>
+              <div class="task-detail">Not to V — positional encoding only needed for the matching step, not the value aggregation.</div>
+            </div>
+            <div class="task-tag red">Core</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Expand KV heads to match Q heads</div>
+              <div class="task-detail">repeat_interleave by n_groups (=2) along head dim before SDPA. This is how GQA makes 8 KV heads serve 16 query heads.</div>
+            </div>
+            <div class="task-tag red">Core</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">F.scaled_dot_product_attention</div>
+              <div class="task-detail">PyTorch's Flash Attention 2 implementation. is_causal=True for training. Handles the Q*K/sqrt(d)*V computation efficiently.</div>
+            </div>
+            <div class="task-tag red">Core</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">KV cache (modular)</div>
+              <div class="task-detail">Keep it in a clean swappable module. Used at inference only. This is where PolarQuant compression slots in later.</div>
+            </div>
+            <div class="task-tag purple">Inference</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-violet">6</div>
+        <div class="phase-title-block">
+          <div class="phase-title">SwiGLU Feed-Forward Network</div>
+          <div class="phase-meta">Each token processes what it learned from attention</div>
+        </div>
+        <div class="phase-badge">2–4 hrs</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">After attention tokens have gathered information from neighbours. The FFN is where each token independently processes that information. Expands to 2752 dimensions (8/3 * d_model, rounded to multiple of 64 for GPU efficiency), applies SwiGLU activation, compresses back. This is where most of the model's factual knowledge is stored.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Three weight matrices — gate, up, down</div>
+              <div class="task-detail">SwiGLU uses 3 projections instead of standard 2. gate and up both project d_model → 2752. down projects 2752 → d_model. No bias on any of them.</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">SwiGLU forward: down(SiLU(gate(x)) * up(x))</div>
+              <div class="task-detail">The gating mechanism — SiLU(gate) acts as a learned filter on up(x). This is what makes SwiGLU outperform standard GELU FFN.</div>
+            </div>
+            <div class="task-tag purple">Build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-teal">7</div>
+        <div class="phase-title-block">
+          <div class="phase-title">TransformerBlock + Full LLM</div>
+          <div class="phase-meta">Wire everything together into a complete model</div>
+        </div>
+        <div class="phase-badge">1 day</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">TransformerBlock wires RMSNorm → GQA → residual → RMSNorm → FFN → residual. The full LLM stacks 24 of these blocks, adds token embeddings, a final RMSNorm, and the output projection. Weight tying shares embedding and output projection weights, saving 33M parameters.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">TransformerBlock — pre-norm pattern</div>
+              <div class="task-detail">Norm before each sub-layer, residual connection after. x = x + attn(norm(x)), then x = x + ffn(norm(x)).</div>
+            </div>
+            <div class="task-tag">Build</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">LLM — embeddings + 24 layers + lm_head</div>
+              <div class="task-detail">Weight tie embed and lm_head. Register RoPE buffers. Scaled init on o_proj and down_proj (1/sqrt(2*n_layers)) to prevent residual stream explosion.</div>
+            </div>
+            <div class="task-tag">Build</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Sanity check — random input loss ≈ 10.4</div>
+              <div class="task-detail">log(32768) = 10.4. A randomly initialised model on random data should produce this loss. If not, something is broken in the forward pass.</div>
+            </div>
+            <div class="task-tag red">Verify</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">// Data + Training</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-pink">8</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Tokenizer Training</div>
+          <div class="phase-meta">BPE, 32K vocab, with chat special tokens</div>
+        </div>
+        <div class="phase-badge">2–4 days</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Train your own BPE tokenizer on a representative 5–10GB sample before touching the full dataset. Vocabulary size 32K. Add special tokens for BOS, EOS, and SYSTEM/USER/ASSISTANT chat formatting. Verify round-trip encode/decode is lossless before tokenizing anything else.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Sample 5–10GB across all four sources</div>
+              <div class="task-detail">FineWeb-Edu, Wikipedia, Gutenberg, StarCoder. Proportional to final training mix so tokenizer sees representative distribution.</div>
+            </div>
+            <div class="task-tag amber">Data</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Train BPE with HuggingFace Tokenizers</div>
+              <div class="task-detail">vocab_size=32768. Add special tokens before training. Verify fertility rate and round-trip correctness.</div>
+            </div>
+            <div class="task-tag">Build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-sky">9</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Data Pipeline</div>
+          <div class="phase-meta">FineWeb-Edu 60% · Wikipedia 20% · Gutenberg 15% · StarCoder 5%</div>
+        </div>
+        <div class="phase-badge">1–2 weeks</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Unified preprocessing pipeline that normalises encoding, whitespace, and formatting across all four sources before tokenization. Stream directly to binary shards to avoid local storage issues. Test on 1M token sample before processing full corpus.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Unified normalisation function</div>
+              <div class="task-detail">UTF-8 encoding, NFC unicode normalisation, CRLF → LF, max 2 consecutive newlines, minimum 100 word filter. All sources go through the same funnel.</div>
+            </div>
+            <div class="task-tag red">Critical</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Stream + tokenize + pack to binary shards</div>
+              <div class="task-detail">100M tokens per shard as uint16 .bin files. Never save intermediate jsonl if storage is limited. Enforce 60/20/15/5 ratio at chunk level.</div>
+            </div>
+            <div class="task-tag">Build</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Validate on 1M token sample first</div>
+              <div class="task-detail">Check shapes, token distributions, no data leakage between train/val. Catch pipeline bugs before spending cloud compute.</div>
+            </div>
+            <div class="task-tag amber">QA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number">10</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Training Loop</div>
+          <div class="phase-meta">AdamW, cosine schedule, bf16, gradient accumulation</div>
+        </div>
+        <div class="phase-badge">1 week</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Training harness with all modern essentials. Test locally on RTX 3070 with a tiny 10M–50M config to verify the loop runs correctly before going to cloud. Once clean locally, scale config to 350M on Vast.ai Croatia A100.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">AdamW + cosine LR schedule</div>
+              <div class="task-detail">lr=3e-4, weight_decay=0.1, β1=0.9, β2=0.95, grad_clip=1.0. Cosine decay to 3e-5 (10% of peak). 2000 step warmup.</div>
+            </div>
+            <div class="task-tag">Core</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">bf16 mixed precision + gradient accumulation</div>
+              <div class="task-detail">PyTorch autocast. Accumulate to simulate 512K token effective batch size. Gradient checkpointing to trade compute for memory.</div>
+            </div>
+            <div class="task-tag green">Efficiency</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Weights & Biases logging</div>
+              <div class="task-detail">Log train loss, val loss, LR, gradient norm, tokens/sec. Also log loss separately per data source for research track.</div>
+            </div>
+            <div class="task-tag purple">Monitor</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Checkpointing every 1000 steps</div>
+              <div class="task-detail">Save to persistent storage — not ephemeral instance disk. Critical for research track: the full checkpoint trajectory is your primary research artifact.</div>
+            </div>
+            <div class="task-tag red">Critical</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-purple">11</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Cloud Training Run</div>
+          <div class="phase-meta">Vast.ai Croatia SXM4 A100 — $0.615/hr</div>
+        </div>
+        <div class="phase-badge">5–12 days</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Start with a 125M proof-of-concept (~$4, ~6 hours) to verify the full pipeline end to end before committing to the full 350M run. Scale up only once loss curves look healthy on the small run.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">125M proof-of-concept run first</div>
+              <div class="task-detail">~6 hrs, ~$4. Loss should drop from ~10.4 to ~3–4 range. Verify data pipeline, training loop, and checkpointing all work before scaling up.</div>
+            </div>
+            <div class="task-tag red">First</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">350M full pre-training run</div>
+              <div class="task-detail">~50B tokens, ~10 days, ~$150. Save checkpoints every 1000 steps to persistent storage. Monitor wandb loss curves daily.</div>
+            </div>
+            <div class="task-tag amber">Main run</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-green">12</div>
+        <div class="phase-title-block">
+          <div class="phase-title">SFT + Serving</div>
+          <div class="phase-meta">Instruction tuning, KV compression, FastAPI deployment</div>
+        </div>
+        <div class="phase-badge">1–2 weeks</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Fine-tune on OpenHermes + long-doc QA datasets to enable chat and document understanding. Implement TurboQuant KV cache compression for 16K context on VPS. Quantize to GGUF and serve via FastAPI on existing VPS infrastructure.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">SFT — OpenHermes 2.5 + NarrativeQA</div>
+              <div class="task-detail">lr=1e-5, 1–3 epochs max. Chat + document QA capability. Format with SYSTEM/USER/ASSISTANT special tokens.</div>
+            </div>
+            <div class="task-tag">SFT</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">PolarQuant KV cache compression</div>
+              <div class="task-detail">Implement TurboQuant. Convert K vectors to polar form, 3-bit quantization. QJL rotation for V vectors. Drop into modular KV cache from Phase 5.</div>
+            </div>
+            <div class="task-tag purple">Optimise</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">GGUF quantization + FastAPI on VPS</div>
+              <div class="task-detail">Q4_K_M quantization via llama.cpp. /chat and /document endpoints with SSE streaming. Plug into existing Docker Compose infrastructure.</div>
+            </div>
+            <div class="task-tag sky">Deploy</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESEARCH TRACK -->
+  <div class="track-section" id="track-research">
+
+    <div class="phase-desc" style="padding: 0 0 24px 0; font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.8; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+      The research track runs in parallel with the build track. The goal is not to produce groundbreaking research immediately — it is to build the instrumentation and habits that make serious research possible later, and to develop a foundation for PhD-level work connecting LLM interpretability to healthcare AI.
+    </div>
+
+    <div class="section-label">// Instrumentation (built during phases 7–10)</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number">R1</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Hidden state extraction hooks</div>
+          <div class="phase-meta">Extract any layer's output during any forward pass</div>
+        </div>
+        <div class="phase-badge">Build with Phase 7</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Add PyTorch forward hooks to every TransformerBlock that optionally save the hidden state output. When enabled, a single forward pass returns not just logits but a list of 24 tensors — one per layer. This is the foundation for everything else in the research track.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">register_forward_hook on each layer</div>
+              <div class="task-detail">Controlled by a flag so it adds zero overhead during training. Activates only during analysis runs.</div>
+            </div>
+            <div class="task-tag sky">Instrument</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-purple">R2</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Attention weight logging</div>
+          <div class="phase-meta">Save attention matrices for visualisation</div>
+        </div>
+        <div class="phase-badge">Build with Phase 5</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Optionally return attention weight matrices from GroupedQueryAttention during inference. These are the (n_heads, T, T) matrices that show which tokens attended to which. The raw material for attention heatmap visualisations.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">return_attn_weights flag in attention forward</div>
+              <div class="task-detail">When True, return the softmax weights before the value aggregation step. Shape: (B, n_heads, T, T).</div>
+            </div>
+            <div class="task-tag sky">Instrument</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-amber">R3</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Per-source loss tracking</div>
+          <div class="phase-meta">Watch when the model learns each type of content</div>
+        </div>
+        <div class="phase-badge">Build with Phase 10</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Instead of logging a single loss number, log loss separately for held-out samples from each data source. Plotting these over training shows exactly when the model started learning web text vs books vs code vs Wikipedia — and whether learning one thing helped or hurt another.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Maintain separate val sets per source</div>
+              <div class="task-detail">Hold out 1000 examples from each source before training. Evaluate every 500 steps. Log to wandb as separate loss curves.</div>
+            </div>
+            <div class="task-tag sky">Instrument</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">// Analysis (after training)</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-green">R4</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Attention visualisation dashboard</div>
+          <div class="phase-meta">See which tokens attend to which across all layers</div>
+        </div>
+        <div class="phase-badge">Post-training</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Interactive heatmap visualisation. Input any sentence, select a layer and head, see the attention weight matrix as a colour grid. Watch how attention patterns change from early layers (often positional/syntactic) to later layers (semantic relationships). BertViz or TransformerLens as the backbone.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Integrate TransformerLens or BertViz</div>
+              <div class="task-detail">TransformerLens is purpose-built for this — hook into any layer, patch activations, run causal analysis. Adapt to your architecture.</div>
+            </div>
+            <div class="task-tag green">Analysis</div>
+          </div>
+        </div>
+        <div class="resources">
+          <div class="resources-title">Tools</div>
+          <div class="resource-list">
+            <div class="resource">TransformerLens (Neel Nanda)</div>
+            <div class="resource">BertViz</div>
+            <div class="resource">matplotlib / plotly</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-red">R5</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Hidden state PCA visualisation</div>
+          <div class="phase-meta">Watch representations form across layers</div>
+        </div>
+        <div class="phase-badge">Post-training</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Extract hidden states at each layer for a set of sentences from different domains. Use PCA to compress 1024 dimensions to 2D and plot. Colour by domain — medical text, general text, code. Watch whether the model separates them and at which layer that separation emerges.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">PCA + t-SNE plots per layer</div>
+              <div class="task-detail">sklearn PCA/TSNE on hidden states. One plot per layer showing how representation space organises itself. Also run across checkpoint timeline to watch it develop during training.</div>
+            </div>
+            <div class="task-tag green">Analysis</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-violet">R6</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Probing classifiers</div>
+          <div class="phase-meta">Find where specific knowledge lives in the network</div>
+        </div>
+        <div class="phase-badge">Post-training</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">Train tiny linear classifiers on top of frozen hidden states at each layer. Ask questions like "does this layer know if this is a medical sentence?" or "does this layer encode part of speech?". If the classifier works, that layer has encoded that information. Plotting accuracy across 24 layers shows exactly where knowledge lives.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Linear probe per layer per concept</div>
+              <div class="task-detail">Single nn.Linear trained on frozen hidden states. Concepts to probe: domain classification, part of speech, sentence boundary, medical vs general text.</div>
+            </div>
+            <div class="task-tag green">Analysis</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">// PhD Research Direction</div>
+
+    <div class="phase">
+      <div class="phase-header" onclick="toggle(this)">
+        <div class="phase-number pn-teal">R7</div>
+        <div class="phase-title-block">
+          <div class="phase-title">Long-term research framing</div>
+          <div class="phase-meta">Building toward UAB BHI PhD — Fall 2027</div>
+        </div>
+        <div class="phase-badge">Ongoing</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-desc">This project is the foundation, not the destination. The goal is to arrive at the PhD application with hands-on experience building and studying LLMs, preliminary observations about model internals, and a clear research question connecting interpretability to healthcare AI.</div>
+        <div class="tasks">
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Core research question to develop</div>
+              <div class="task-detail">How does training data composition affect internal representations in small language models, and what does this mean for domain-specific AI in healthcare? Tractable at 350M scale. Genuinely understudied at the mechanistic level.</div>
+            </div>
+            <div class="task-tag sky">Research</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Read: Neel Nanda's grokking paper</div>
+              <div class="task-detail">Most relevant interpretability work to what you're doing. Small models, controlled experiments, circuit-level analysis. This is the style of research that is tractable for a solo project.</div>
+            </div>
+            <div class="task-tag amber">Reading</div>
+          </div>
+          <div class="task">
+            <div class="task-icon">○</div>
+            <div class="task-content">
+              <div class="task-name">Connect with UAB faculty before applying</div>
+              <div class="task-detail">Abu Saleh Mohammad Mosa (biosignals) and John D. Osborne (clinical NLP) are identified fits. Talk to PhD holders first. Reach out once you have preliminary results from this project to show.</div>
+            </div>
+            <div class="task-tag purple">PhD</div>
+          </div>
+        </div>
+        <div class="tip"><strong>Important reframe:</strong> The research track is not about producing groundbreaking results right now. It is about building the tools, habits, and understanding that make serious research possible. Most PhD students spend their first year reaching the level of understanding you are actively building. The excitement you feel about this is exactly the right fuel — let the project build the foundation first.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-title">// Estimated Timeline — Build Track</div>
+    <div class="timeline-row">
+      <div class="timeline-label">Environment + repo</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar g" style="width:5%"></div></div>
+      <div class="timeline-dur">Complete</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Architecture (phases 2–7)</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar p" style="width:25%"></div></div>
+      <div class="timeline-dur">2–3 weeks</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Tokenizer</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar a" style="width:8%"></div></div>
+      <div class="timeline-dur">2–4 days</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Data pipeline</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:18%"></div></div>
+      <div class="timeline-dur">1–2 weeks</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Training loop</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar v" style="width:12%"></div></div>
+      <div class="timeline-dur">1 week</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Cloud training run</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar r" style="width:28%"></div></div>
+      <div class="timeline-dur">5–12 days</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">SFT + serving</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar t" style="width:15%"></div></div>
+      <div class="timeline-dur">1–2 weeks</div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Research analysis</div>
+      <div class="timeline-bar-wrap"><div class="timeline-bar k" style="width:40%"></div></div>
+      <div class="timeline-dur">Ongoing</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+}
+
+function switchTrack(track, btn) {
+  document.querySelectorAll('.track-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.track-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('track-' + track).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
