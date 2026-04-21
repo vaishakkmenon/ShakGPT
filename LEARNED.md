@@ -15,3 +15,7 @@ Feed-Forward Network: A neural network that is applied to each token's embedding
 Normalisation: This is a technique used to deal with the variability of large and small numbers to ensure that the scale of numbers does not create instability in the training.
 
 Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart.
+
+## Design Choices
+
+config.py-ModelConfig: This is a dataclass that hosts the configuration variables that will be used to determine the specifications of the model. Having a singular location where this information is stored allows for easy access to changes and ensures that all parts of the model are using the same values.
