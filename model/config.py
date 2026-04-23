@@ -24,3 +24,7 @@ class ModelConfig:
     def __post_init__(self):
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
         assert self.n_heads % self.n_kv_heads == 0, "n_heads must be divisible by n_kv_heads"
+
+    @property
+    def head_dim(self):
+        return self.d_model // self.n_heads
