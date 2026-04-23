@@ -14,7 +14,7 @@ Feed-Forward Network: A neural network that is applied to each token's embedding
 
 Normalisation: This is a technique used to deal with the variability of large and small numbers to ensure that the scale of numbers does not create instability in the training.
 
-Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart.
+Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. The original position encoding uses absolute position which is not ideal for longer sequences. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart. With RoPE position is relative so words that are further away, are rotated more.
 
 GQA (Grouped Query Attention): A technique used to attach multiple Q vectors to a single K and V vector. This allows us to reduce the memory used while maintaining quality close to that of Multi-Head Attention. Key factor is that n_heads must be divisible by n_kv_heads with 0 remainder.
 
