@@ -32,6 +32,8 @@ max_seq_len: We are using 2048 for now to keep it manageable and quick to train.
 
 rope_theta: We are using 10000.0 which matches the RoPE paper value. This value is more appropriate for shorter contexts.
 
+tokenizer: We are using a custom BPE tokenizer trained on the dataset we will be using to train the model.
+
 ## Papers
 
 - Must read: Vaswani et al., 2017 — "Attention Is All You Need"
