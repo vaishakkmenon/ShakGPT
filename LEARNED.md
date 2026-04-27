@@ -49,6 +49,13 @@ LayerNorm: Normalisation technique used to scale embeddings along the feature di
 
 RMSNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: RMSNorm(x) = x / RMS(X) * weights where RMS(x) = sqrt(mean(x^2)). We chose RMSNorm over LayerNorm because RMSNorm drops the recentering step that LayerNorm performs — subtracting the mean — and only keeps the rescaling. This is simpler and empirically performs just as well.
 
+Projection: A learned linear transformation calculated by multiplying the input embeddings with a weight matrix for a representation in a different space. Uses nn.Linear in PyTorch.
+
+Projection Output Dimension: Without GQA, (Q, K, V) n_heads * head_dim which for us is 16 * 64 = 1024. With GQA, (K, V) n_kv_heads * head_dim = 8 * 64 = 512, while (Q) n_heads * head_dim = 16 * 64 = 1024.
+Template: nn.Linear(d_model, output_size); our case, nn.Linear(1024, 1024) for Q, nn.Linear(1024, 512) for K, nn.Linear(1024, 512) for V.
+
+Bias: A learnable parameter that is added to the output of a linear transformation to provide additional flexibility to the model. We ignore bias for our implementation because RMSNorm already deals with the scaling and normalisation of the embeddings.
+
 ## Design Choices
 
 config.py-ModelConfig: This is a dataclass that hosts the configuration variables that will be used to determine the specifications of the model. Having a singular location where this information is stored allows for easy access to changes and ensures that all parts of the model are using the same values.
