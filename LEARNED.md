@@ -14,7 +14,7 @@ Feed-Forward Network: A neural network that is applied to each token's embedding
 
 Normalisation: This is a technique used to deal with the variability of large and small numbers to ensure that the scale of numbers does not create instability in the training.
 
-Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. The original position encoding uses absolute position which is not ideal for longer sequences. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart. With RoPE position is relative so words that are further away, are rotated more.
+Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. The original position encoding uses absolute position which is not ideal for longer sequences. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart. With RoPE position is relative so words that are further away, are rotated more. Position is supposed to be encoded into the attention vector through rotation due to RoPE.
 
 GQA (Grouped Query Attention): A technique used to attach multiple Q vectors to a single K and V vector. This allows us to reduce the memory used while maintaining quality close to that of Multi-Head Attention. Key factor is that n_heads must be divisible by n_kv_heads with 0 remainder.
 
@@ -31,6 +31,19 @@ BPE: Byte Pair Encoding is a technique used to create tokens based on the most c
 Byte-Level Encoding: A tokenization strategy that first splits the input text into individual bytes and then uses BPE to merge them into tokens.
 
 Special Tokens: Tokens that are added to the tokenizer to represent special concepts such as the beginning of a sequence, the end of a sequence, and padding. We are using [PAD], [BOS], [EOS] which represent the padding token for attention masks, begin of sequence token for text generation, and end of sequence token for text generation.
+
+Embedding Table: A table that stores the embedding vectors for each token in the vocabulary in which the vectors are learnable through backpropagation. Allows for us to look up the embedding for a token based on its index.
+
+NN.Module: Python class that is the base class for all neural network modules. It provides methods for:
+- Initializing the module
+- Moving the module to a device
+- Moving the module to a data type
+- Saving and loading the module
+- Paramater tracking when using nn.Embedding or nn.Linear layers.
+
+Weight tying: A technique used to reduce parameters by using the same weight matrix for multiple operations. E.g. InputEmbedding and Output Projection in the Transformer model share the same weight matrix.
+
+Embedding Tensor Shapes: Shape of the data that is being processed by the model. Important for debugging and ensuring that the model is processing the data correctly. Specifically, what I learned about this was:  input is [batch_size, seq_len] of token IDs, output is [batch_size, seq_len, d_model] of vectors.
 
 ## Design Choices
 
