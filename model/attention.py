@@ -6,7 +6,15 @@ from model.config import ModelConfig
 
 class GroupedQueryAttention(nn.Module):
     def __init__(self, config: ModelConfig):
+        """
+        Initialize the GroupedQueryAttention layer.
+
+        Args:
+            config: Model configuration
+        """
+
         super().__init__()
+        
         self.q_proj = nn.Linear(config.d_model, config.n_heads * config.head_dim, bias=False)
         self.k_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
         self.v_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
@@ -19,6 +27,15 @@ class GroupedQueryAttention(nn.Module):
         self.n_kv_groups_per_head = self.n_heads // self.n_kv_heads
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for GroupedQueryAttention.
+
+        Args:
+            x: Input tensor of shape [batch_size, seq_len, d_model]
+
+        Returns:
+            Output tensor of shape [batch_size, seq_len, d_model]
+        """
         batch_size, seq_len, d_model = x.shape
 
         # Step 1 Projecting embeddings to Q, K, V matrices

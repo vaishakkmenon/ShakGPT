@@ -56,6 +56,8 @@ Template: nn.Linear(d_model, output_size); our case, nn.Linear(1024, 1024) for Q
 
 Bias: A learnable parameter that is added to the output of a linear transformation to provide additional flexibility to the model. We ignore bias for our implementation because RMSNorm already deals with the scaling and normalisation of the embeddings.
 
+Contiguous Function: A function used to ensure that a tensor is stored in contiguous memory for the view() or reshape() function to work properly. Transpose() specifically does not preserve the memory contiguity of the tensor, so we need to use contiguous() to ensure that the tensor is stored in contiguous memory before reshaping it to the original shape.
+
 ## Design Choices
 
 config.py-ModelConfig: This is a dataclass that hosts the configuration variables that will be used to determine the specifications of the model. Having a singular location where this information is stored allows for easy access to changes and ensures that all parts of the model are using the same values.
