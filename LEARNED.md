@@ -54,9 +54,13 @@ Projection: A learned linear transformation calculated by multiplying the input 
 Projection Output Dimension: Without GQA, (Q, K, V) n_heads * head_dim which for us is 16 * 64 = 1024. With GQA, (K, V) n_kv_heads * head_dim = 8 * 64 = 512, while (Q) n_heads * head_dim = 16 * 64 = 1024.
 Template: nn.Linear(d_model, output_size); our case, nn.Linear(1024, 1024) for Q, nn.Linear(1024, 512) for K, nn.Linear(1024, 512) for V.
 
-Bias: A learnable parameter that is added to the output of a linear transformation to provide additional flexibility to the model. We ignore bias for our implementation because RMSNorm already deals with the scaling and normalisation of the embeddings.
+Bias: A learnable parameter that is added to the output of a linear transformation to provide additional flexibility to the model. We ignore bias for our implementation because RMSNorm already deals with the scaling and normalisation of the embeddings. Also, bias is ignored because it doesn't provide meaningful performance benefits and adds extra parameters to the model.
 
 Contiguous Function: A function used to ensure that a tensor is stored in contiguous memory for the view() or reshape() function to work properly. Transpose() specifically does not preserve the memory contiguity of the tensor, so we need to use contiguous() to ensure that the tensor is stored in contiguous memory before reshaping it to the original shape.
+
+Full Forward Pass: The forward pass of the model is the process of taking input embeddings and producing output embeddings. It consists of the following steps: Project Q/K/V → Reshape → Expand K/V (GQA) → RoPE → Scaled Dot-Product Attention → Reshape → Output Projection.
+
+Causal Masking: A technique in which a mask is applied to the attention vectors to prevent the model from attending to future tokens.
 
 ## Design Choices
 
