@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model.config import ModelConfig
+from model.rope import RoPE
 
 class GroupedQueryAttention(nn.Module):
     def __init__(self, config: ModelConfig):
@@ -14,12 +15,14 @@ class GroupedQueryAttention(nn.Module):
         """
 
         super().__init__()
-        
+
         self.q_proj = nn.Linear(config.d_model, config.n_heads * config.head_dim, bias=False)
         self.k_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
         self.v_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
         self.o_proj = nn.Linear(config.n_heads * config.head_dim, config.d_model, bias=False)
         self.dropout = nn.Dropout(config.dropout)
+
+        self.rope = RoPE(config)
 
         self.n_heads = config.n_heads
         self.head_dim = config.head_dim
@@ -53,6 +56,7 @@ class GroupedQueryAttention(nn.Module):
         v = torch.repeat_interleave(v, self.n_kv_groups_per_head, dim=1)
 
         # Step 4 RoPE Integration
+        q, k = self.rope(q, k, seq_len)
         
         # Step 5 Scaled Dot-Product Attention with Dropout
         output = F.scaled_dot_product_attention(q, k, v, is_causal=True)
