@@ -24,6 +24,14 @@ FlashAttention: An algorithm that computes the attention mechanism in a way that
 
 Rope Theta: Variable used in RoPE to determine rotation frequencies across dimensions. Higher theta means that the frequency cycling is done slower, allowing the model to capture longer range dependencies.
 
+Tokenizer: The component of the model that is responsible for converting text into tokens and vice versa.
+
+BPE: Byte Pair Encoding is a technique used to create tokens based on the most common pairs of bytes in the training data. This allows for the model to handle special characters.
+
+Byte-Level Encoding: A tokenization strategy that first splits the input text into individual bytes and then uses BPE to merge them into tokens.
+
+Special Tokens: Tokens that are added to the tokenizer to represent special concepts such as the beginning of a sequence, the end of a sequence, and padding. We are using [PAD], [BOS], [EOS] which represent the padding token for attention masks, begin of sequence token for text generation, and end of sequence token for text generation.
+
 ## Design Choices
 
 config.py-ModelConfig: This is a dataclass that hosts the configuration variables that will be used to determine the specifications of the model. Having a singular location where this information is stored allows for easy access to changes and ensures that all parts of the model are using the same values.
@@ -32,7 +40,7 @@ max_seq_len: We are using 2048 for now to keep it manageable and quick to train.
 
 rope_theta: We are using 10000.0 which matches the RoPE paper value. This value is more appropriate for shorter contexts.
 
-tokenizer: We are using a custom BPE tokenizer trained on the dataset we will be using to train the model.
+tokenizer: We are using a custom BPE tokenizer trained on the dataset we will be using to train the model. This is because we want to be able to control all aspects of the model to the best of our ability.
 
 ## Papers
 
