@@ -4,6 +4,8 @@ from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import ByteLevel
+from tokenizers.decoders import ByteLevel as ByteLevelDecoder
+
 
 
 class ShakGPTTokenizer:
@@ -18,6 +20,7 @@ class ShakGPTTokenizer:
         
         self.tokenizer = Tokenizer(BPE())
         self.tokenizer.pre_tokenizer = ByteLevel()
+        self.tokenizer.decoder = ByteLevelDecoder()
         self.tokenizer.add_special_tokens(self.special_tokens)
 
     def train(self, files: list[str], min_frequency: int=2):
