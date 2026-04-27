@@ -45,6 +45,10 @@ Weight tying: A technique used to reduce parameters by using the same weight mat
 
 Embedding Tensor Shapes: Shape of the data that is being processed by the model. Important for debugging and ensuring that the model is processing the data correctly. Specifically, what I learned about this was:  input is [batch_size, seq_len] of token IDs, output is [batch_size, seq_len, d_model] of vectors.
 
+LayerNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: LayerNorm(x) = (x - mean(x)) / sqrt(variance(x) + eps) + weights.
+
+RMSNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: RMSNorm(x) = x / RMS(X) * weights where RMS(x) = sqrt(mean(x^2)). We chose RMSNorm over LayerNorm because RMSNorm drops the recentering step that LayerNorm performs — subtracting the mean — and only keeps the rescaling. This is simpler and empirically performs just as well.
+
 ## Design Choices
 
 config.py-ModelConfig: This is a dataclass that hosts the configuration variables that will be used to determine the specifications of the model. Having a singular location where this information is stored allows for easy access to changes and ensures that all parts of the model are using the same values.
