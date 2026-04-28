@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
+
 from model.config import ModelConfig
+from model.block import Block
+from model.rms_norm import RMSNorm
 
 class ShakGPTEmbedding(nn.Module):
     """
@@ -10,7 +13,7 @@ class ShakGPTEmbedding(nn.Module):
         token_embedding: Embedding matrix for tokens
         dropout: Dropout layer
     """
-    
+
     def __init__(self, config: ModelConfig):
         """
         Initialize the embedding layer.
@@ -36,3 +39,38 @@ class ShakGPTEmbedding(nn.Module):
         x = self.dropout(x)
         return x
 
+class ShakGPT(nn.Module):
+    """
+    ShakGPT model for text generation.
+    """
+    
+    def __init__(self, config: ModelConfig):
+        """
+        Initialize the ShakGPT model.
+
+        Args:
+            config: Model configuration
+        """
+        super().__init__()
+        self.embedding = ShakGPTEmbedding(config)
+        self.blocks = nn.ModuleList([Block(config) for _ in range(config.n_layers)])
+        self.norm = RMSNorm(config)
+        self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
+        self.lm_head.weight = self.embedding.token_embedding.weight
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for ShakGPT.
+
+        Args:
+            x: Input tensor of shape [batch_size, seq_len]
+
+        Returns:
+            Output tensor of shape [batch_size, seq_len, vocab_size]
+        """
+        x = self.embedding(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.norm(x)
+        x = self.lm_head(x)
+        return x
