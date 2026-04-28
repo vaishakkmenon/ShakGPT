@@ -4,6 +4,8 @@ A file to keep track of the things I have reviewed/learned while working on this
 
 ## Keywords and Topics
 
+### Core Concepts
+
 Tokens: Characters, subwords or words that are fed into the model. Split is decided based on how tokenization is planned for. 
 
 Embeddings: Mathematical numerical representation of a token. Generally stored in a vector format that is used to perform mathematical operations on.
@@ -16,13 +18,23 @@ Normalisation: This is a technique used to deal with the variability of large an
 
 Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. The original position encoding uses absolute position which is not ideal for longer sequences. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart. With RoPE position is relative so words that are further away, are rotated more. Position is supposed to be encoded into the attention vector through rotation due to RoPE.
 
+### Architecture Components
+
 GQA (Grouped Query Attention): A technique used to attach multiple Q vectors to a single K and V vector. This allows us to reduce the memory used while maintaining quality close to that of Multi-Head Attention. Key factor is that n_heads must be divisible by n_kv_heads with 0 remainder.
 
-SwiGLU (Swish Gated Linear Unit): A feed-forward network, like ReLU, but with a gating mechanism. This ffn projects the input to a higher dimension, runs it through a swish activation which is like ReLU but never truly reaches 0 and then multiplies it with the gating mechanism to determine how much information passes through. Allows for us to learn what information to activate and how much of it to let through.
+Projection Output Dimension (GQA): Without GQA, (Q, K, V) n_heads * head_dim which for us is 16 * 64 = 1024. With GQA, (K, V) n_kv_heads * head_dim = 8 * 64 = 512, while (Q) n_heads * head_dim = 16 * 64 = 1024. Template: nn.Linear(d_model, output_size); our case, nn.Linear(1024, 1024) for Q, nn.Linear(1024, 512) for K, nn.Linear(1024, 512) for V.
+
+SwiGLU (Swish Gated Linear Unit): A feed-forward network, like ReLU, but with a gating mechanism. This ffn projects the input to a higher dimension, runs it through a swish activation which is like ReLU but never truly reaches 0 and then multiplies it with the gating mechanism to determine how much information passes through. Allows for us to learn what information to activate and how much of it to let through. There are 3 main projection for this ffn, the gate projection, the content (up) projection, and the down projection. The gate projection produces the values that go through the Swish function. The up projection produces values with no activation. The gate and up projection are multiplied together. The down projection projects the result back down. Smoothness is preferred in activation functions to better nudge the weights without dealing with the dying ReLU problem.
 
 FlashAttention: An algorithm that computes the attention mechanism in a way that reduces the memory used and increases the speed of computation. Instead of storing the entire matrix in memory, computation is done in small tiles that fit on the GPUs SRAM. Allows us to compute the full matrix without having to store the entire matrix in memory.
 
 Rope Theta: Variable used in RoPE to determine rotation frequencies across dimensions. Higher theta means that the frequency cycling is done slower, allowing the model to capture longer range dependencies.
+
+LayerNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: LayerNorm(x) = (x - mean(x)) / sqrt(variance(x) + eps) + weights.
+
+RMSNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: RMSNorm(x) = x / RMS(X) * weights where RMS(x) = sqrt(mean(x^2)). We chose RMSNorm over LayerNorm because RMSNorm drops the recentering step that LayerNorm performs — subtracting the mean — and only keeps the rescaling. This is simpler and empirically performs just as well.
+
+### Tokenization
 
 Tokenizer: The component of the model that is responsible for converting text into tokens and vice versa.
 
@@ -32,7 +44,7 @@ Byte-Level Encoding: A tokenization strategy that first splits the input text in
 
 Special Tokens: Tokens that are added to the tokenizer to represent special concepts such as the beginning of a sequence, the end of a sequence, and padding. We are using [PAD], [BOS], [EOS] which represent the padding token for attention masks, begin of sequence token for text generation, and end of sequence token for text generation.
 
-Embedding Table: A table that stores the embedding vectors for each token in the vocabulary in which the vectors are learnable through backpropagation. Allows for us to look up the embedding for a token based on its index.
+### PyTorch Concepts
 
 NN.Module: Python class that is the base class for all neural network modules. It provides methods for:
 - Initializing the module
@@ -41,26 +53,29 @@ NN.Module: Python class that is the base class for all neural network modules. I
 - Saving and loading the module
 - Paramater tracking when using nn.Embedding or nn.Linear layers.
 
-Weight tying: A technique used to reduce parameters by using the same weight matrix for multiple operations. E.g. InputEmbedding and Output Projection in the Transformer model share the same weight matrix.
+Embedding Table: A table that stores the embedding vectors for each token in the vocabulary in which the vectors are learnable through backpropagation. Allows for us to look up the embedding for a token based on its index.
 
-Embedding Tensor Shapes: Shape of the data that is being processed by the model. Important for debugging and ensuring that the model is processing the data correctly. Specifically, what I learned about this was:  input is [batch_size, seq_len] of token IDs, output is [batch_size, seq_len, d_model] of vectors.
+Embedding Tensor Shapes: Shape of the data that is being processed by the model. Important for debugging and ensuring that the model is processing the data correctly. Specifically, what I learned about this was: input is [batch_size, seq_len] of token IDs, output is [batch_size, seq_len, d_model] of vectors.
 
-LayerNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: LayerNorm(x) = (x - mean(x)) / sqrt(variance(x) + eps) + weights.
-
-RMSNorm: Normalisation technique used to scale embeddings along the feature dimension. Specific formula: RMSNorm(x) = x / RMS(X) * weights where RMS(x) = sqrt(mean(x^2)). We chose RMSNorm over LayerNorm because RMSNorm drops the recentering step that LayerNorm performs — subtracting the mean — and only keeps the rescaling. This is simpler and empirically performs just as well.
+Weight Tying: A technique used to reduce parameters by using the same weight matrix for multiple operations. E.g. InputEmbedding and Output Projection in the Transformer model share the same weight matrix.
 
 Projection: A learned linear transformation calculated by multiplying the input embeddings with a weight matrix for a representation in a different space. Uses nn.Linear in PyTorch.
-
-Projection Output Dimension: Without GQA, (Q, K, V) n_heads * head_dim which for us is 16 * 64 = 1024. With GQA, (K, V) n_kv_heads * head_dim = 8 * 64 = 512, while (Q) n_heads * head_dim = 16 * 64 = 1024.
-Template: nn.Linear(d_model, output_size); our case, nn.Linear(1024, 1024) for Q, nn.Linear(1024, 512) for K, nn.Linear(1024, 512) for V.
 
 Bias: A learnable parameter that is added to the output of a linear transformation to provide additional flexibility to the model. We ignore bias for our implementation because RMSNorm already deals with the scaling and normalisation of the embeddings. Also, bias is ignored because it doesn't provide meaningful performance benefits and adds extra parameters to the model.
 
 Contiguous Function: A function used to ensure that a tensor is stored in contiguous memory for the view() or reshape() function to work properly. Transpose() specifically does not preserve the memory contiguity of the tensor, so we need to use contiguous() to ensure that the tensor is stored in contiguous memory before reshaping it to the original shape.
 
-Full Forward Pass: The forward pass of the model is the process of taking input embeddings and producing output embeddings. It consists of the following steps: Project Q/K/V → Reshape → Expand K/V (GQA) → RoPE → Scaled Dot-Product Attention → Reshape → Output Projection.
+### Training Concepts
 
 Causal Masking: A technique in which a mask is applied to the attention vectors to prevent the model from attending to future tokens.
+
+Swish vs ReLU: Swish never truly reaches 0 while ReLU does. This allows for Swish to be more smooth and continuous which allows for better gradient flow during backpropagation. The dying ReLU is a phenomenon where neurons get stuck in a state where they always output 0, so they never learn. This happens when a neuron's inputs are consistently negative, ReLU outputs zero, which means the gradient is also zero and the weights never get updated.
+
+### Full Forward Pass
+
+The forward pass of the model is the process of taking input embeddings and producing output embeddings. It consists of the following steps: Project Q/K/V → Reshape → Expand K/V (GQA) → RoPE → Scaled Dot-Product Attention → Reshape → Output Projection.
+
+---
 
 ## Design Choices
 
@@ -71,6 +86,8 @@ max_seq_len: We are using 2048 for now to keep it manageable and quick to train.
 rope_theta: We are using 10000.0 which matches the RoPE paper value. This value is more appropriate for shorter contexts.
 
 tokenizer: We are using a custom BPE tokenizer trained on the dataset we will be using to train the model. This is because we want to be able to control all aspects of the model to the best of our ability.
+
+---
 
 ## Papers
 
