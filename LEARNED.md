@@ -18,6 +18,16 @@ Normalisation: This is a technique used to deal with the variability of large an
 
 Positional Encoding: This is a technique used to add information about the position of a token in the sequence. Allows for a token/word to know where it stands chronologically in a sentence and helps the model understand the order of words. The original position encoding uses absolute position which is not ideal for longer sequences. I will be using RoPE which rotates each token's vector by an angle proportional to its position in the sequence, so the model can distinguish tokens that are close together from tokens that are far apart. With RoPE position is relative so words that are further away, are rotated more. Position is supposed to be encoded into the attention vector through rotation due to RoPE.
 
+Contextual Representations: A single token has its embedding vector which stays unchanged throughout the entire training process. However through the multiple layers of the transformer architecture, each token's embedding is updated and transformed in the attention matrix and feed forward networks to create a representation of its meaning and relationship to the other tokens in the sequence. At every layer, the vector will have its own meaning based on the context it has been fed from the attention matrix and feed forward networks. 
+
+Polysemy: There are words in language that have the same exact spelling but can have completely different meanings, which can only really be defined by context.
+
+Representation Collapse: When the model fails to learn the contextual representations for polysemous words and instead collapses the embeddings into a single muddled average, which results in the model being unable to distinguish between the different meanings of the word.
+
+Polysemy Solution: Attention allows for the model to create contextual representations for each token, allowing the model to distinguish between the different meanings of polysemous words. As context is provided for each token and the polysemous words, the attention weights will pull the vector representing the word into different directions which will allow the model to understand the different meanings.
+
+Weights: The weights that are learned are essentially learned functions which take in token representations as input and output a transformed vector which represents the word and its contextual meaning.
+
 ### Architecture Components
 
 GQA (Grouped Query Attention): A technique used to attach multiple Q vectors to a single K and V vector. This allows us to reduce the memory used while maintaining quality close to that of Multi-Head Attention. Key factor is that n_heads must be divisible by n_kv_heads with 0 remainder.
@@ -44,6 +54,8 @@ Byte-Level Encoding: A tokenization strategy that first splits the input text in
 
 Special Tokens: Tokens that are added to the tokenizer to represent special concepts such as the beginning of a sequence, the end of a sequence, and padding. We are using [PAD], [BOS], [EOS] which represent the padding token for attention masks, begin of sequence token for text generation, and end of sequence token for text generation.
 
+Tokenizer Training vs Model Training: Tokenizer training occurs once on a massive dataset to create the vocabulary and merges, while model training occurs multiple times to learn the weights of the model. Tokenizer training is also only done on a much smaller dataset since we only need to get the 256 unique bytes and then build upon that with BPE merges.
+
 ### PyTorch Concepts
 
 NN.Module: Python class that is the base class for all neural network modules. It provides methods for:
@@ -53,11 +65,13 @@ NN.Module: Python class that is the base class for all neural network modules. I
 - Saving and loading the module
 - Paramater tracking when using nn.Embedding or nn.Linear layers.
 
+NN.ModuleList: A module that acts as a container for other modules. Allows for the ability to iterate through them during the forward pass. PyTorch won't track parameters or move modules to GPU unless they're registered via ModuleList.
+
 Embedding Table: A table that stores the embedding vectors for each token in the vocabulary in which the vectors are learnable through backpropagation. Allows for us to look up the embedding for a token based on its index.
 
 Embedding Tensor Shapes: Shape of the data that is being processed by the model. Important for debugging and ensuring that the model is processing the data correctly. Specifically, what I learned about this was: input is [batch_size, seq_len] of token IDs, output is [batch_size, seq_len, d_model] of vectors.
 
-Weight Tying: A technique used to reduce parameters by using the same weight matrix for multiple operations. E.g. InputEmbedding and Output Projection in the Transformer model share the same weight matrix.
+Weight Tying: A technique used to reduce parameters by using the same weight matrix for multiple operations. E.g. InputEmbedding and Output Projection in the Transformer model share the same weight matrix. It is important to note that weight tying specifically only occurs for the embedding and output vectors and not for the weights inside the attention matrix or feed forward networks.
 
 Projection: A learned linear transformation calculated by multiplying the input embeddings with a weight matrix for a representation in a different space. Uses nn.Linear in PyTorch.
 
@@ -70,6 +84,14 @@ Contiguous Function: A function used to ensure that a tensor is stored in contig
 Causal Masking: A technique in which a mask is applied to the attention vectors to prevent the model from attending to future tokens.
 
 Swish vs ReLU: Swish never truly reaches 0 while ReLU does. This allows for Swish to be more smooth and continuous which allows for better gradient flow during backpropagation. The dying ReLU is a phenomenon where neurons get stuck in a state where they always output 0, so they never learn. This happens when a neuron's inputs are consistently negative, ReLU outputs zero, which means the gradient is also zero and the weights never get updated.
+
+Pre-norm vs Post-norm: Pre-norm places the normalization step before the attention and FFN blocks, while post-norm places it after. Pre-norm is what we use in modern LLMs and our implementation because it leads to more stable training. Post-norm was the original method but this lead to training instability.
+
+Residual Stream: It is the idea that the original token embeddings are passed through every layer of the model and combined with the output of the attention and FFN layers. This allows the model to preserve information throughout the entire forward pass. Given that whenever a modification is made, it is like a delta which is added back to the starting point to preserve information and context. It is important to note that this is the shape [batch_size, seq_len, d_model] for every layer.
+
+Chinchilla Scaling Law: This is a law that determines how large the model and the training data should be in proportion to each other to achieve optimal performance. It states that optimal training tokens ≈ 20x the number of parameters.
+
+Binary Flat File: A binary file with all of the tokens from the trainind data in token ID form that is encoded in binary. This is done to save space and allow for quicker reading into memory.
 
 ### Full Forward Pass
 
