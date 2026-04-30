@@ -16,4 +16,5 @@ __pycache__/
 .env
 
 # Ignore data files
+data/processed
 tokenizer/training_data/
