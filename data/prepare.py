@@ -12,15 +12,17 @@ OUTPUT_DIR = "data/processed"
 TRAIN_FILE = "train.bin"
 VALIDATION_FILE = "val.bin"
 
-# FINEWEB_TARGET = 4_200_000_000      # 60% of 7B tokens
-# WIKIPEDIA_TARGET = 1_400_000_000    # 20% of 7B tokens
-# GUTENBERG_TARGET = 1_050_000_000    # 15% of 7B tokens
-# STARCODER_TARGET = 350_000_000      # 5% of 7B tokens
+# Training Token Targets
+FINEWEB_TARGET = 4_200_000_000      # 60% of 7B tokens
+WIKIPEDIA_TARGET = 1_400_000_000    # 20% of 7B tokens
+GUTENBERG_TARGET = 1_050_000_000    # 15% of 7B tokens
+STARCODER_TARGET = 350_000_000      # 5% of 7B tokens
 
-FINEWEB_TARGET = 10_000_000      # 60% of 7B tokens
-WIKIPEDIA_TARGET = 10_000_000    # 20% of 7B tokens
-GUTENBERG_TARGET = 10_000_000    # 15% of 7B tokens
-STARCODER_TARGET = 10_000_000      # 5% of 7B tokens
+# Test Run Token Targets
+# FINEWEB_TARGET = 10_000_000      # 60% of 7B tokens
+# WIKIPEDIA_TARGET = 10_000_000    # 20% of 7B tokens
+# GUTENBERG_TARGET = 10_000_000    # 15% of 7B tokens
+# STARCODER_TARGET = 10_000_000      # 5% of 7B tokens
 
 DATASETS = [
     {

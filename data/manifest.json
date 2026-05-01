@@ -1,25 +1,25 @@
 {
-  "date": "2026-04-30T15:51:40.599845",
+  "date": "2026-05-01T02:33:14.472614",
   "sources": [
     {
       "name": "HuggingFaceFW/fineweb-edu",
-      "token_quota": 10000000,
-      "consumed_tokens": 9999643
+      "token_quota": 4200000000,
+      "consumed_tokens": 4199999836
     },
     {
       "name": "wikimedia/wikipedia",
-      "token_quota": 10000000,
-      "consumed_tokens": 9995089
+      "token_quota": 1400000000,
+      "consumed_tokens": 1399998071
     },
     {
       "name": "sedthh/gutenberg_english",
-      "token_quota": 10000000,
-      "consumed_tokens": 9960554
+      "token_quota": 1050000000,
+      "consumed_tokens": 1049857473
     },
     {
       "name": "bigcode/starcoderdata",
-      "token_quota": 10000000,
-      "consumed_tokens": 9876589
+      "token_quota": 350000000,
+      "consumed_tokens": 349997831
     }
   ]
 }
