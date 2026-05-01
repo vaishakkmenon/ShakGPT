@@ -1,0 +1,25 @@
+{
+  "date": "2026-04-30T15:51:40.599845",
+  "sources": [
+    {
+      "name": "HuggingFaceFW/fineweb-edu",
+      "token_quota": 10000000,
+      "consumed_tokens": 9999643
+    },
+    {
+      "name": "wikimedia/wikipedia",
+      "token_quota": 10000000,
+      "consumed_tokens": 9995089
+    },
+    {
+      "name": "sedthh/gutenberg_english",
+      "token_quota": 10000000,
+      "consumed_tokens": 9960554
+    },
+    {
+      "name": "bigcode/starcoderdata",
+      "token_quota": 10000000,
+      "consumed_tokens": 9876589
+    }
+  ]
+}
