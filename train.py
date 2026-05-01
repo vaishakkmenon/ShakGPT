@@ -14,6 +14,7 @@ EVAL_INTERVAL = 500
 CHECKPOINT_INTERVAL = 1000
 LOG_INTERVAL = 10
 WARMUP_STEPS = 1000
+GRAD_ACCUM_STEPS = 8
 
 class ShakGPTDataModule():
     def __init__(self, batch_size=32, seq_len=2048, data_path="data/processed/train.bin"):
@@ -40,18 +41,20 @@ class ShakGPTDataModule():
         
         return x, y
     
-def train_step(model, optimizer, x, y, scaler, dtype, device):
+def train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum):
     x, y = x.to(device), y.to(device)
-    optimizer.zero_grad()
     with torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+    loss = loss / GRAD_ACCUM_STEPS
     scaler.scale(loss).backward()
-    scaler.unscale_(optimizer)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-    scaler.step(optimizer)
-    scaler.update()
-    return loss.item()
+    if is_last_accum:
+        scaler.unscale_(optimizer)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad(set_to_none=True)
+    return loss.item() * GRAD_ACCUM_STEPS
 
 def evaluate_step(model, x, y, dtype, device):
     x, y = x.to(device), y.to(device)
@@ -78,8 +81,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, get_lr_lambda)
 
-    train_loader = ShakGPTDataModule(data_path="data/processed/train.bin")
-    val_loader = ShakGPTDataModule(data_path="data/processed/val.bin")
+    train_loader = ShakGPTDataModule(batch_size=4, data_path="data/processed/train.bin")
+    val_loader = ShakGPTDataModule(batch_size=4, data_path="data/processed/val.bin")
     print("Starting training...")   
 
     start_step = 0
@@ -94,9 +97,11 @@ if __name__ == "__main__":
     model.train()
     last_log_time = time.time()
     for step in range(start_step, MAX_STEPS):
-        x, y = train_loader.next_batch()
-        loss = train_step(model, optimizer, x, y, scaler, dtype, device)
-        
+        for accum_step in range(GRAD_ACCUM_STEPS):
+            x, y = train_loader.next_batch()
+            is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
+            loss = train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum)
+
         if step % LOG_INTERVAL == 0 and step > 0:
             elapsed_time = time.time() - last_log_time
             tokens_per_sec = (LOG_INTERVAL * train_loader.batch_size * train_loader.seq_len) / elapsed_time
