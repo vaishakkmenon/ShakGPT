@@ -14,35 +14,39 @@ EVAL_INTERVAL = 500
 CHECKPOINT_INTERVAL = 1000
 LOG_INTERVAL = 10
 WARMUP_STEPS = 1000
-GRAD_ACCUM_STEPS = 2
+GRAD_ACCUM_STEPS = 4
 
 class ShakGPTDataModule():
-    def __init__(self, batch_size=32, seq_len=2048, data_path="data/processed/train.bin"):
+    def __init__(self, batch_size=8, seq_len=2048, data_path="data/processed/train.bin"):
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.data = np.memmap(data_path, dtype=np.uint16, mode='r')
         self.offset = 0
-
-    def next_batch(self):
+        self.stream = torch.cuda.Stream()
+        self._prefetch()
+    
+    def _prefetch(self):
         total_tokens = self.batch_size * (self.seq_len + 1)
-        
         if self.offset + total_tokens > len(self.data):
             remainder = (self.offset + total_tokens) - len(self.data)
             tokens = np.concatenate((self.data[self.offset:], self.data[:remainder]))
         else:
             tokens = self.data[self.offset:self.offset + total_tokens]
-            
         tokens = tokens.astype(np.int64).reshape(self.batch_size, self.seq_len + 1)
-        
-        x = torch.from_numpy(tokens[:, :-1])
-        y = torch.from_numpy(tokens[:, 1:])
-        
-        self.offset = (self.offset + self.batch_size * (self.seq_len + 1)) % len(self.data)
-        
+        x = torch.from_numpy(tokens[:, :-1]).pin_memory()
+        y = torch.from_numpy(tokens[:, 1:]).pin_memory()
+        with torch.cuda.stream(self.stream):
+            self.next_x = x.cuda(non_blocking=True)
+            self.next_y = y.cuda(non_blocking=True)
+        self.offset = (self.offset + total_tokens) % len(self.data)
+
+    def next_batch(self):
+        torch.cuda.current_stream().wait_stream(self.stream)
+        x, y = self.next_x, self.next_y
+        self._prefetch()
         return x, y
     
 def train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum):
-    x, y = x.to(device), y.to(device)
     with torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
@@ -57,7 +61,6 @@ def train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum):
     return loss.item() * GRAD_ACCUM_STEPS
 
 def evaluate_step(model, x, y, dtype, device):
-    x, y = x.to(device), y.to(device)
     with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
@@ -82,8 +85,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, get_lr_lambda)
 
-    train_loader = ShakGPTDataModule(batch_size=16, data_path="data/processed/train.bin")
-    val_loader = ShakGPTDataModule(batch_size=16, data_path="data/processed/val.bin")
+    train_loader = ShakGPTDataModule(batch_size=8, data_path="data/processed/train.bin")
+    val_loader = ShakGPTDataModule(batch_size=8, data_path="data/processed/val.bin")
     print("Starting training...")   
 
     start_step = 0
