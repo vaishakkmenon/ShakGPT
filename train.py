@@ -46,17 +46,15 @@ class ShakGPTDataModule():
         self._prefetch()
         return x, y
     
-def train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum):
+def train_step(model, optimizer, x, y, dtype, device, is_last_accum):
     with torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
     loss = loss / GRAD_ACCUM_STEPS
-    scaler.scale(loss).backward()
+    loss.backward()
     if is_last_accum:
-        scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        scaler.step(optimizer)
-        scaler.update()
+        optimizer.step()
         optimizer.zero_grad(set_to_none=True)
     return loss.item() * GRAD_ACCUM_STEPS
 
@@ -78,7 +76,7 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
-    scaler = torch.amp.GradScaler('cuda')
+    # scaler = torch.amp.GradScaler('cuda')
 
     model = ShakGPT(ModelConfig()).to(device)
     model = torch.compile(model)
@@ -104,7 +102,7 @@ if __name__ == "__main__":
         for accum_step in range(GRAD_ACCUM_STEPS):
             x, y = train_loader.next_batch()
             is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
-            loss = train_step(model, optimizer, x, y, scaler, dtype, device, is_last_accum)
+            loss = train_step(model, optimizer, x, y, dtype, device, is_last_accum)
 
         if step % LOG_INTERVAL == 0 and step > 0:
             elapsed_time = time.time() - last_log_time
