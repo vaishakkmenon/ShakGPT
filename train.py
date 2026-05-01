@@ -1,0 +1,125 @@
+import os
+import math
+import time
+import torch
+import numpy as np
+
+from model.model import ShakGPT
+from model.config import ModelConfig
+import torch.nn.functional as F
+
+# Training hyper-parameters
+MAX_STEPS = 106809
+EVAL_INTERVAL = 500
+CHECKPOINT_INTERVAL = 1000
+LOG_INTERVAL = 10
+WARMUP_STEPS = 1000
+
+class ShakGPTDataModule():
+    def __init__(self, batch_size=32, seq_len=2048, data_path="data/processed/train.bin"):
+        self.batch_size = batch_size
+        self.seq_len = seq_len
+        self.data = np.memmap(data_path, dtype=np.uint16, mode='r')
+        self.offset = 0
+
+    def next_batch(self):
+        total_tokens = self.batch_size * (self.seq_len + 1)
+        
+        if self.offset + total_tokens > len(self.data):
+            remainder = (self.offset + total_tokens) - len(self.data)
+            tokens = np.concatenate((self.data[self.offset:], self.data[:remainder]))
+        else:
+            tokens = self.data[self.offset:self.offset + total_tokens]
+            
+        tokens = tokens.astype(np.int64).reshape(self.batch_size, self.seq_len + 1)
+        
+        x = torch.from_numpy(tokens[:, :-1])
+        y = torch.from_numpy(tokens[:, 1:])
+        
+        self.offset = (self.offset + self.batch_size * (self.seq_len + 1)) % len(self.data)
+        
+        return x, y
+    
+def train_step(model, optimizer, x, y, scaler, dtype, device):
+    x, y = x.to(device), y.to(device)
+    optimizer.zero_grad()
+    with torch.autocast(device_type=device, dtype=dtype):
+        logits = model(x)
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+    scaler.scale(loss).backward()
+    scaler.unscale_(optimizer)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    scaler.step(optimizer)
+    scaler.update()
+    return loss.item()
+
+def evaluate_step(model, x, y, dtype, device):
+    x, y = x.to(device), y.to(device)
+    with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
+        logits = model(x)
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+        perplexity = torch.exp(loss)
+    return loss.item(),perplexity.item()
+
+def get_lr_lambda(step):
+    if step < WARMUP_STEPS:
+        return step / WARMUP_STEPS
+    progress = (step - WARMUP_STEPS) / (MAX_STEPS - WARMUP_STEPS)
+    return 0.5 * (1 + math.cos(math.pi * progress))
+
+if __name__ == "__main__":
+    os.makedirs("checkpoints", exist_ok=True)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
+    scaler = torch.amp.GradScaler('cuda')
+
+    model = ShakGPT(ModelConfig()).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, get_lr_lambda)
+
+    train_loader = ShakGPTDataModule(data_path="data/processed/train.bin")
+    val_loader = ShakGPTDataModule(data_path="data/processed/val.bin")
+    print("Starting training...")   
+
+    start_step = 0
+    if os.path.exists("checkpoints/latest.pt"):
+        checkpoint = torch.load("checkpoints/latest.pt")
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_step = checkpoint["step"] + 1
+        print(f"Resuming from step {start_step}")
+
+    model.train()
+    last_log_time = time.time()
+    for step in range(start_step, MAX_STEPS):
+        x, y = train_loader.next_batch()
+        loss = train_step(model, optimizer, x, y, scaler, dtype, device)
+        
+        if step % LOG_INTERVAL == 0 and step > 0:
+            elapsed_time = time.time() - last_log_time
+            tokens_per_sec = (LOG_INTERVAL * train_loader.batch_size * train_loader.seq_len) / elapsed_time
+            last_log_time = time.time()
+            print(f"Step {step}: loss = {loss:.4f} | {tokens_per_sec:.0f} tok/s")
+        
+        if step % EVAL_INTERVAL == 0:
+            model.eval()
+            x_val, y_val = val_loader.next_batch()
+            val_loss, val_perplexity = evaluate_step(model, x_val, y_val, dtype, device)
+            print(f"Step {step}: val_loss = {val_loss}, val_perplexity = {val_perplexity}")
+            model.train()
+        
+        if step % CHECKPOINT_INTERVAL == 0:
+            checkpoint = {
+                "step": step,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
+                "loss": loss,
+            }
+            torch.save(checkpoint, f"checkpoints/step_{step}.pt")
+            torch.save(checkpoint, "checkpoints/latest.pt")
+        
+        scheduler.step()
+    

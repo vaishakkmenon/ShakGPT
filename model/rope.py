@@ -43,7 +43,7 @@ class RoPE(nn.Module):
         self, 
         q: torch.Tensor, 
         k: torch.Tensor, 
-        seq_len: int
+        seq_len: int,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Apply RoPE rotation to the input.
@@ -52,12 +52,21 @@ class RoPE(nn.Module):
             q: Query tensor of shape [batch_size, seq_len, n_heads, head_dim]
             k: Key tensor of shape [batch_size, seq_len, n_heads, head_dim]
             seq_len: Sequence length
+            orig_dtype: Original dtype of the input tensors
 
         Returns:
             Tuple of RoPE-rotated query and key tensors of shape [batch_size, seq_len, n_heads, head_dim]
         """
         # Slice the precomputed frequencies to the current sequence length
         freqs_cis = self.freqs_cis[:seq_len]
+
+        orig_dtype = q.dtype
+
+        # Convert to float32 if not already
+        if q.dtype != torch.float32:
+            q = q.float()
+        if k.dtype != torch.float32:
+            k = k.float()
 
         # Reshape q to (batch_size, seq_len, n_heads, head_dim // 2, 2)
         q_view = q.view(q.shape[0], q.shape[1], q.shape[2], self.head_dim // 2, 2)
@@ -77,11 +86,14 @@ class RoPE(nn.Module):
         k_complex = k_complex * freqs_cis_broadcast
 
         # View back to real numbers
-        q = torch.view_as_real(q_complex)
-        k = torch.view_as_real(k_complex)
+        q_out = torch.view_as_real(q_complex)
+        k_out = torch.view_as_real(k_complex)
 
         # Reshape to original shape
-        q = q.contiguous().view(q.shape[0], q.shape[1], q.shape[2], self.head_dim)
-        k = k.contiguous().view(k.shape[0], k.shape[1], k.shape[2], self.head_dim)
+        q_out = q_out.contiguous().view(q.shape[0], q.shape[1], q.shape[2], self.head_dim)
+        k_out = k_out.contiguous().view(k.shape[0], k.shape[1], k.shape[2], self.head_dim)
 
-        return q, k
+        q_out = q_out.to(orig_dtype)
+        k_out = k_out.to(orig_dtype)   
+
+        return q_out, k_out
