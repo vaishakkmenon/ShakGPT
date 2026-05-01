@@ -78,15 +78,6 @@ if __name__ == "__main__":
     scaler = torch.amp.GradScaler('cuda')
 
     model = ShakGPT(ModelConfig()).to(device)
-    # Sanity check
-    x_test = torch.zeros(1, 10, dtype=torch.long).to(device)
-    with torch.no_grad():
-        logits = model(x_test)
-    print(f"Logits shape: {logits.shape}")
-    print(f"Logits min/max: {logits.min():.4f} / {logits.max():.4f}")
-    print(f"Logits has nan: {torch.isnan(logits).any()}")
-    print(f"Logits has inf: {torch.isinf(logits).any()}")
-    
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, get_lr_lambda)
 
