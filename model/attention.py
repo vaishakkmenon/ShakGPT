@@ -52,15 +52,15 @@ class GroupedQueryAttention(nn.Module):
         k = k.view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1,2)
         v = v.view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1,2)
 
-        # Step 3 Repeat KV heads to match Q heads
-        k = torch.repeat_interleave(k, self.n_kv_groups_per_head, dim=1)
-        v = torch.repeat_interleave(v, self.n_kv_groups_per_head, dim=1)
+        # # Step 3 Repeat KV heads to match Q heads
+        # k = torch.repeat_interleave(k, self.n_kv_groups_per_head, dim=1)
+        # v = torch.repeat_interleave(v, self.n_kv_groups_per_head, dim=1)
 
         # Step 4 RoPE Integration
         q, k = self.rope(q, k, seq_len)
         
         # Step 5 Scaled Dot-Product Attention with Dropout
-        output = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        output = F.scaled_dot_product_attention(q, k, v, is_causal=True, enable_gqa=True)
         output = self.dropout(output)
 
         # Step 6 Reshaping the matrices to (batch_size, seq_len, d_model)
