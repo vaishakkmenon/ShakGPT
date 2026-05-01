@@ -18,9 +18,11 @@ class RoPE(nn.Module):
         self.max_seq_len = config.max_seq_len
 
         # Pre-compute the RoPE embeddings
-        self.register_buffer("freqs_cis", self._precompute_freqs(config.max_seq_len))
+        cos, sin = self._precompute_freqs(config.max_seq_len)
+        self.register_buffer("freqs_cos", cos)
+        self.register_buffer("freqs_sin", sin)
 
-    def _precompute_freqs(self, max_seq_len: int) -> torch.Tensor:
+    def _precompute_freqs(self, max_seq_len: int) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Pre-compute the RoPE embeddings.
 
@@ -37,7 +39,22 @@ class RoPE(nn.Module):
         
         # Outer product to get (max_seq_len, head_dim // 2)
         freqs_cis = torch.outer(positions, freqs)
-        return torch.polar(torch.ones_like(freqs_cis), freqs_cis)
+        freqs_cis = torch.cat([freqs_cis, freqs_cis], dim=-1)
+        return freqs_cis.cos(), freqs_cis.sin()
+    
+    def rotate_half(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Rotate the input tensor by 90 degrees.
+
+        Args:
+            x: Input tensor of shape [batch_size, seq_len, n_heads, head_dim]
+
+        Returns:
+            Rotated tensor of shape [batch_size, seq_len, n_heads, head_dim]
+        """
+        x1 = x[..., :x.shape[-1] // 2]
+        x2 = x[..., x.shape[-1] // 2:]
+        return torch.cat([-x2, x1], dim=-1)
     
     def forward(
         self, 
@@ -57,43 +74,10 @@ class RoPE(nn.Module):
         Returns:
             Tuple of RoPE-rotated query and key tensors of shape [batch_size, seq_len, n_heads, head_dim]
         """
-        # Slice the precomputed frequencies to the current sequence length
-        freqs_cis = self.freqs_cis[:seq_len]
-
-        orig_dtype = q.dtype
-
-        # Convert to float32 if not already
-        if q.dtype != torch.float32:
-            q = q.float()
-        if k.dtype != torch.float32:
-            k = k.float()
-
-        # Reshape q to (batch_size, seq_len, n_heads, head_dim // 2, 2)
-        q_view = q.view(q.shape[0], q.shape[1], q.shape[2], self.head_dim // 2, 2)
-        # Convert to complex numbers
-        q_complex = torch.view_as_complex(q_view)
-
-        # Reshape k to (batch_size, seq_len, n_heads, head_dim // 2, 2)
-        k_view = k.view(k.shape[0], k.shape[1], k.shape[2], self.head_dim // 2, 2)
-        # Convert to complex numbers
-        k_complex = torch.view_as_complex(k_view)
-
-        # Broadcast frequencies to match q and k shapes
-        freqs_cis_broadcast = freqs_cis.view(1, 1, seq_len, -1)
-        
-        # Apply RoPE rotation
-        q_complex = q_complex * freqs_cis_broadcast
-        k_complex = k_complex * freqs_cis_broadcast
-
-        # View back to real numbers
-        q_out = torch.view_as_real(q_complex)
-        k_out = torch.view_as_real(k_complex)
-
-        # Reshape to original shape
-        q_out = q_out.contiguous().view(q.shape[0], q.shape[1], q.shape[2], self.head_dim)
-        k_out = k_out.contiguous().view(k.shape[0], k.shape[1], k.shape[2], self.head_dim)
-
-        q_out = q_out.to(orig_dtype)
-        k_out = k_out.to(orig_dtype)   
-
-        return q_out, k_out
+        cos = self.freqs_cos[:seq_len].view(1, 1, seq_len, self.head_dim)
+        sin = self.freqs_sin[:seq_len].view(1, 1, seq_len, self.head_dim)
+        q_rotated = self.rotate_half(q)
+        k_rotated = self.rotate_half(k)
+        q = (q * cos) + (q_rotated * sin)
+        k = (k * cos) + (k_rotated * sin)
+        return q, k
