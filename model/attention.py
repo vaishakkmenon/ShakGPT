@@ -20,6 +20,7 @@ class GroupedQueryAttention(nn.Module):
         self.k_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
         self.v_proj = nn.Linear(config.d_model, config.n_kv_heads * config.head_dim, bias=False)
         self.o_proj = nn.Linear(config.n_heads * config.head_dim, config.d_model, bias=False)
+        self.o_proj.is_residual_projection = True
         self.dropout = nn.Dropout(config.dropout)
 
         self.rope = RoPE(config)

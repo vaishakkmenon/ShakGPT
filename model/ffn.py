@@ -26,6 +26,7 @@ class FeedForward(nn.Module):
         self.gate_proj = nn.Linear(config.d_model, config.ffn_hidden, bias=False)
         self.up_proj = nn.Linear(config.d_model, config.ffn_hidden, bias=False)
         self.down_proj = nn.Linear(config.ffn_hidden, config.d_model, bias=False)
+        self.down_proj.is_residual_projection = True
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
