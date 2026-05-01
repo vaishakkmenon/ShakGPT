@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
         if step % LOG_INTERVAL == 0 and step > 0:
             elapsed_time = time.time() - last_log_time
-            tokens_per_sec = (LOG_INTERVAL * train_loader.batch_size * train_loader.seq_len) / elapsed_time
+            tokens_per_sec = (LOG_INTERVAL * GRAD_ACCUM_STEPS * train_loader.batch_size * train_loader.seq_len) / elapsed_time
             last_log_time = time.time()
             print(f"Step {step}: loss = {loss:.4f} | {tokens_per_sec:.0f} tok/s")
         
