@@ -7,6 +7,8 @@ import numpy as np
 from model.model import ShakGPT
 from model.config import ModelConfig
 import torch.nn.functional as F
+from liger_kernel.transformers.cross_entropy import LigerCrossEntropyLoss
+
 
 # Training hyper-parameters
 MAX_STEPS = 106809
@@ -14,8 +16,8 @@ EVAL_INTERVAL = 500
 CHECKPOINT_INTERVAL = 1000
 LOG_INTERVAL = 10
 WARMUP_STEPS = 1000
-GRAD_ACCUM_STEPS = 2
-BATCH_SIZE = 16
+BATCH_SIZE = 8
+GRAD_ACCUM_STEPS = 4
 
 class ShakGPTDataModule():
     def __init__(self, batch_size=8, seq_len=2048, data_path="data/processed/train.bin"):
@@ -47,10 +49,22 @@ class ShakGPTDataModule():
         self._prefetch()
         return x, y
     
-def train_step(model, optimizer, x, y, dtype, device, is_last_accum):
+# def train_step(model, optimizer, x, y, dtype, device, is_last_accum):
+#     with torch.autocast(device_type=device, dtype=dtype):
+#         logits = model(x)
+#         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+#     loss = loss / GRAD_ACCUM_STEPS
+#     loss.backward()
+#     if is_last_accum:
+#         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+#         optimizer.step()
+#         optimizer.zero_grad(set_to_none=True)
+#     return loss.item() * GRAD_ACCUM_STEPS
+
+def train_step(model, optimizer, loss_fn, x, y, dtype, device, is_last_accum):
     with torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
-        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+        loss = loss_fn(logits.view(-1, logits.size(-1)), y.view(-1))
     loss = loss / GRAD_ACCUM_STEPS
     loss.backward()
     if is_last_accum:
@@ -59,12 +73,19 @@ def train_step(model, optimizer, x, y, dtype, device, is_last_accum):
         optimizer.zero_grad(set_to_none=True)
     return loss.item() * GRAD_ACCUM_STEPS
 
-def evaluate_step(model, x, y, dtype, device):
+# def evaluate_step(model, x, y, dtype, device):
+#     with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
+#         logits = model(x)
+#         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+#         perplexity = torch.exp(loss)
+#     return loss.item(),perplexity.item()
+
+def evaluate_step(model, loss_fn, x, y, dtype, device):
     with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
         logits = model(x)
-        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+        loss = loss_fn(logits.view(-1, logits.size(-1)), y.view(-1))
         perplexity = torch.exp(loss)
-    return loss.item(),perplexity.item()
+    return loss.item(), perplexity.item()
 
 def get_lr_lambda(step):
     if step < WARMUP_STEPS:
@@ -98,12 +119,14 @@ if __name__ == "__main__":
         print(f"Resuming from step {start_step}")
 
     model.train()
+    loss_fn = LigerCrossEntropyLoss()  # could move to top-level once
     last_log_time = time.time()
     for step in range(start_step, MAX_STEPS):
         for accum_step in range(GRAD_ACCUM_STEPS):
             x, y = train_loader.next_batch()
             is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
-            loss = train_step(model, optimizer, x, y, dtype, device, is_last_accum)
+            loss = train_step(model, optimizer, loss_fn, x, y, dtype, device, is_last_accum)
+
 
         if step % LOG_INTERVAL == 0 and step > 0:
             elapsed_time = time.time() - last_log_time
@@ -114,7 +137,7 @@ if __name__ == "__main__":
         if step % EVAL_INTERVAL == 0:
             model.eval()
             x_val, y_val = val_loader.next_batch()
-            val_loss, val_perplexity = evaluate_step(model, x_val, y_val, dtype, device)
+            val_loss, val_perplexity = evaluate_step(model, loss_fn, x_val, y_val, dtype, device)
             print(f"Step {step}: val_loss = {val_loss}, val_perplexity = {val_perplexity}")
             model.train()
         
