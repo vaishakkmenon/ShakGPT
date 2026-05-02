@@ -46,7 +46,7 @@ def main():
     
     model = ShakGPT(ModelConfig()).to(device)
     model = torch.compile(model)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95), fused=True)
     train_loader = ShakGPTDataModule(batch_size=BATCH_SIZE, data_path="data/processed/train.bin")
     
     model.train()
@@ -98,8 +98,12 @@ def main():
             print(f"  profile step {step}")
     
     print("Profile saved to ./profile_logs/")
-    print("\nTop 20 operations by CUDA time:")
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=20))
+    table_str = prof.key_averages().table(sort_by="cuda_time_total", row_limit=30)
+    print("\nTop 30 operations by CUDA time:")
+    print(table_str)
+    with open("profile_summary.txt", "w") as f:
+        f.write(table_str)
+    print("\nSaved full table to profile_summary.txt")
 
 if __name__ == "__main__":
     main()
