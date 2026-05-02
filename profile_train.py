@@ -45,7 +45,7 @@ def main():
     dtype = torch.bfloat16
     
     model = ShakGPT(ModelConfig()).to(device)
-    model = torch.compile(model)
+    model = torch.compile(model, mode="reduce-overhead")
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95), fused=True)
     train_loader = ShakGPTDataModule(batch_size=BATCH_SIZE, data_path="data/processed/train.bin")
     
