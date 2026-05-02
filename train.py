@@ -14,7 +14,8 @@ EVAL_INTERVAL = 500
 CHECKPOINT_INTERVAL = 1000
 LOG_INTERVAL = 10
 WARMUP_STEPS = 1000
-GRAD_ACCUM_STEPS = 4
+GRAD_ACCUM_STEPS = 2
+BATCH_SIZE = 16
 
 class ShakGPTDataModule():
     def __init__(self, batch_size=8, seq_len=2048, data_path="data/processed/train.bin"):
@@ -80,11 +81,11 @@ if __name__ == "__main__":
 
     model = ShakGPT(ModelConfig()).to(device)
     model = torch.compile(model)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1, betas=(0.9, 0.95), fused=True)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, get_lr_lambda)
 
-    train_loader = ShakGPTDataModule(batch_size=8, data_path="data/processed/train.bin")
-    val_loader = ShakGPTDataModule(batch_size=8, data_path="data/processed/val.bin")
+    train_loader = ShakGPTDataModule(batch_size=BATCH_SIZE, data_path="data/processed/train.bin")
+    val_loader = ShakGPTDataModule(batch_size=BATCH_SIZE, data_path="data/processed/val.bin")
     print("Starting training...")   
 
     start_step = 0
