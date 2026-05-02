@@ -72,19 +72,11 @@ class ShakGPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass for ShakGPT.
-
-        Args:
-            x: Input tensor of shape [batch_size, seq_len]
-
-        Returns:
-            Output tensor of shape [batch_size, seq_len, vocab_size]
-        """
+    def forward(self, x, return_hidden=False):
         x = self.embedding(x)
         for block in self.blocks:
             x = block(x)
         x = self.norm(x)
-        x = self.lm_head(x)
-        return x
+        if return_hidden:
+            return x
+        return self.lm_head(x)
