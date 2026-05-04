@@ -17,6 +17,8 @@ LOG_INTERVAL = 10
 WARMUP_STEPS = 1000
 BATCH_SIZE = 8
 GRAD_ACCUM_STEPS = 4
+MILESTONE_STEPS = {27000, 53000, 80000, 106000}
+KEEP_LAST_N = 1
 
 class ShakGPTDataModule():
     def __init__(self, batch_size=8, seq_len=2048, data_path="data/processed/train.bin"):
@@ -107,29 +109,40 @@ if __name__ == "__main__":
             is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
             loss = train_step(model, optimizer, loss_fn, x, y, dtype, device, is_last_accum)
 
-        if step % LOG_INTERVAL == 0 and step > 0:
+        if step > 0 and step % LOG_INTERVAL == 0:
             elapsed_time = time.time() - last_log_time
             tokens_per_sec = (LOG_INTERVAL * GRAD_ACCUM_STEPS * train_loader.batch_size * train_loader.seq_len) / elapsed_time
             last_log_time = time.time()
             print(f"Step {step}: loss = {loss:.4f} | {tokens_per_sec:.0f} tok/s")
         
-        if step % EVAL_INTERVAL == 0:
+        if step > 0 and step % EVAL_INTERVAL == 0:
             model.eval()
             x_val, y_val = val_loader.next_batch()
             val_loss, val_perplexity = evaluate_step(model, x_val, y_val, dtype, device)
             print(f"Step {step}: val_loss = {val_loss}, val_perplexity = {val_perplexity}")
             model.train()
         
-        if step % CHECKPOINT_INTERVAL == 0:
-            checkpoint = {
+        if step > 0 and step % CHECKPOINT_INTERVAL == 0:
+            full_ckpt = {
                 "step": step,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
                 "loss": loss,
             }
-            torch.save(checkpoint, f"checkpoints/step_{step}.pt")
-            torch.save(checkpoint, "checkpoints/latest.pt")
+            torch.save(full_ckpt, "checkpoints/latest.pt")
+            
+            if step in MILESTONE_STEPS:
+                torch.save(
+                    {"step": step, "model_state_dict": model.state_dict()},
+                    f"checkpoints/milestone_{step}.pt"
+                )
+            else:
+                torch.save(full_ckpt, f"checkpoints/step_{step}.pt")
+                old_step = step - KEEP_LAST_N * CHECKPOINT_INTERVAL
+                old_path = f"checkpoints/step_{old_step}.pt"
+                if os.path.exists(old_path):
+                    os.remove(old_path)
         
         scheduler.step()
     
