@@ -58,7 +58,7 @@ class ShakGPT(nn.Module):
         self.blocks = nn.ModuleList([Block(config) for _ in range(config.n_layers)])
         self.norm = RMSNorm(config)
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
-        self.lm_head.weight = self.embedding.token_embedding.weight
+        # self.lm_head.weight = self.embedding.token_embedding.weight
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
