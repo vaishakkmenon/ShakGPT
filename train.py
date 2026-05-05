@@ -4,6 +4,7 @@ import time
 import torch
 import argparse
 import numpy as np
+import requests
 
 from model.model import ShakGPT
 from model.config import ModelConfig
@@ -19,6 +20,19 @@ BATCH_SIZE = 8
 GRAD_ACCUM_STEPS = 4
 MILESTONE_STEPS = {27000, 53000, 80000, 106000}
 KEEP_LAST_N = 1
+
+# --- Notifications Setup ---
+NTFY_TOPIC = "AlkBQR4I6Y0"
+
+def notify(msg):
+    """Fires a notification to ntfy.sh. Fails silently so it never crashes training."""
+    if not NTFY_TOPIC:
+        return
+    try:
+        requests.post(f"https://ntfy.sh/{NTFY_TOPIC}", data=msg.encode("utf-8"), timeout=5)
+    except Exception:
+        pass
+# ---------------------------
 
 class TrainDataLoader():
     def __init__(self, batch_size, seq_len, data_path="data/processed_v2/train.bin"):
@@ -142,30 +156,63 @@ if __name__ == "__main__":
         start_step = checkpoint["step"] + 1
         print(f"Resuming from step {start_step}")
 
+    notify(f"Training started: MAX_STEPS={MAX_STEPS}, resuming from step {start_step}")
+
     step = start_step - 1 # ensures `step` is defined if loop never executes
     model.train()
     last_log_time = time.time()
-    for step in range(start_step, MAX_STEPS):
-        torch.compiler.cudagraph_mark_step_begin()      
-        for accum_step in range(GRAD_ACCUM_STEPS):
-            x, y = train_loader.next_batch()
-            is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
-            loss = train_step(model, optimizer, loss_fn, x, y, dtype, device, is_last_accum)
+    
+    try:
+        for step in range(start_step, MAX_STEPS):
+            torch.compiler.cudagraph_mark_step_begin()      
+            for accum_step in range(GRAD_ACCUM_STEPS):
+                x, y = train_loader.next_batch()
+                is_last_accum = (accum_step == GRAD_ACCUM_STEPS - 1)
+                loss = train_step(model, optimizer, loss_fn, x, y, dtype, device, is_last_accum)
 
-        if step > 0 and step % LOG_INTERVAL == 0:
-            elapsed_time = time.time() - last_log_time
-            tokens_per_sec = (LOG_INTERVAL * GRAD_ACCUM_STEPS * train_loader.batch_size * train_loader.seq_len) / elapsed_time
-            last_log_time = time.time()
-            print(f"Step {step}: loss = {loss:.4f} | {tokens_per_sec:.0f} tok/s")
-        
-        if step > 0 and step % EVAL_INTERVAL == 0:
-            t0 = time.time()
-            val_loss, val_perplexity = run_evaluation(model, val_loader, dtype, device, loss_fn)
-            eval_elapsed = time.time() - t0
-            print(f"Step {step}: val_loss = {val_loss:.4f}, val_perplexity = {val_perplexity:.2f} | eval took {eval_elapsed:.1f}s")
-        
-        if step > 0 and step % CHECKPOINT_INTERVAL == 0:
-            t0 = time.time()
+            if step > 0 and step % LOG_INTERVAL == 0:
+                elapsed_time = time.time() - last_log_time
+                tokens_per_sec = (LOG_INTERVAL * GRAD_ACCUM_STEPS * train_loader.batch_size * train_loader.seq_len) / elapsed_time
+                last_log_time = time.time()
+                print(f"Step {step}: loss = {loss:.4f} | {tokens_per_sec:.0f} tok/s")
+            
+            if step > 0 and step % EVAL_INTERVAL == 0:
+                t0 = time.time()
+                val_loss, val_perplexity = run_evaluation(model, val_loader, dtype, device, loss_fn)
+                eval_elapsed = time.time() - t0
+                print(f"Step {step}: val_loss = {val_loss:.4f}, val_perplexity = {val_perplexity:.2f} | eval took {eval_elapsed:.1f}s")
+            
+            if step > 0 and step % CHECKPOINT_INTERVAL == 0:
+                t0 = time.time()
+                full_ckpt = {
+                    "step": step,
+                    "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "loss": loss,
+                }
+                torch.save(full_ckpt, "checkpoints/latest.pt")
+                ckpt_elapsed = time.time() - t0
+                print(f"Step {step}: checkpoint saved in {ckpt_elapsed:.1f}s") 
+                
+                if step in MILESTONE_STEPS:
+                    torch.save(
+                        {
+                            "step": step,
+                            "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict()
+                        },
+                        f"checkpoints/milestone_{step}.pt"
+                    )
+                else:
+                    torch.save(full_ckpt, f"checkpoints/step_{step}.pt")
+                    old_step = step - KEEP_LAST_N * CHECKPOINT_INTERVAL
+                    old_path = f"checkpoints/step_{old_step}.pt"
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+            
+            scheduler.step()
+
+        if step >= start_step:
             full_ckpt = {
                 "step": step,
                 "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict(),
@@ -174,32 +221,13 @@ if __name__ == "__main__":
                 "loss": loss,
             }
             torch.save(full_ckpt, "checkpoints/latest.pt")
-            ckpt_elapsed = time.time() - t0
-            print(f"Step {step}: checkpoint saved in {ckpt_elapsed:.1f}s") 
             
-            if step in MILESTONE_STEPS:
-                torch.save(
-                    {
-                        "step": step,
-                        "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict()
-                    },
-                    f"checkpoints/milestone_{step}.pt"
-                )
-            else:
-                torch.save(full_ckpt, f"checkpoints/step_{step}.pt")
-                old_step = step - KEEP_LAST_N * CHECKPOINT_INTERVAL
-                old_path = f"checkpoints/step_{old_step}.pt"
-                if os.path.exists(old_path):
-                    os.remove(old_path)
-        
-        scheduler.step()
+            # Notify Done with loss
+            notify(f"Training complete at step {step}, final loss = {loss:.4f}")
+        else:
+            # Notify Done gracefully if loop skipped
+            notify(f"Training already complete at step {step} (no steps run).")
 
-    if step >= start_step:
-        full_ckpt = {
-            "step": step,
-            "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "scheduler_state_dict": scheduler.state_dict(),
-            "loss": loss,
-        }
-        torch.save(full_ckpt, "checkpoints/latest.pt")
+    except Exception as e:
+        notify(f"Training crashed at step {step}: {type(e).__name__}: {e}")
+        raise
