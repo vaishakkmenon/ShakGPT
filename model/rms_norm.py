@@ -19,7 +19,7 @@ class RMSNorm(nn.Module):
             config: Model configuration
         """
         super().__init__()
-        self.weights = nn.Parameter(torch.ones(config.d_model))
+        self.weight = nn.Parameter(torch.ones(config.d_model))
         self.eps = 1e-6
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -32,7 +32,7 @@ class RMSNorm(nn.Module):
         Returns:
             Output tensor of shape [batch_size, seq_len, d_model]
         """
-        x_squared_mean = torch.mean(x * x, dim=-1, keepdim=True)
-        rms = x_squared_mean.sqrt()
-        normalized = x / (rms + self.eps)
-        return normalized * self.weights
+        orig_dtype = x.dtype
+        x_fp32 = x.to(torch.float32)
+        rms = x_fp32.pow(2).mean(-1, keepdim=True).add(self.eps).rsqrt()
+        return (x_fp32 * rms).to(orig_dtype) * self.weight

@@ -33,7 +33,7 @@ class RoPE(nn.Module):
             RoPE embeddings of shape [max_seq_len, head_dim // 2]
         """
         # Compute frequencies: [0, 2, 4, ..., head_dim - 2]
-        freqs = 1.0 / (self.theta ** (torch.arange(0, self.head_dim, 2) / self.head_dim))
+        freqs = 1.0 / (self.theta ** (torch.arange(0, self.head_dim, 2, dtype=torch.float32) / self.head_dim))
         # Compute positions: [0, 1, 2, ..., max_seq_len - 1]
         positions = torch.arange(max_seq_len)
         
@@ -66,13 +66,12 @@ class RoPE(nn.Module):
         Apply RoPE rotation to the input.
 
         Args:
-            q: Query tensor of shape [batch_size, seq_len, n_heads, head_dim]
-            k: Key tensor of shape [batch_size, seq_len, n_heads, head_dim]
+            q: Query tensor of shape [batch_size, n_heads, seq_len, head_dim]
+            k: Key tensor of shape [batch_size, n_heads, seq_len, head_dim]
             seq_len: Sequence length
-            orig_dtype: Original dtype of the input tensors
-
+        
         Returns:
-            Tuple of RoPE-rotated query and key tensors of shape [batch_size, seq_len, n_heads, head_dim]
+            Tuple of RoPE-rotated query and key tensors of shape [batch_size, n_heads, seq_len, head_dim]
         """
         cos = self.freqs_cos[:seq_len].view(1, 1, seq_len, self.head_dim)
         sin = self.freqs_sin[:seq_len].view(1, 1, seq_len, self.head_dim)
