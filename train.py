@@ -21,7 +21,7 @@ MILESTONE_STEPS = {27000, 53000, 80000, 106000}
 KEEP_LAST_N = 1
 
 class ShakGPTDataModule():
-    def __init__(self, batch_size=8, seq_len=2048, data_path="data/processed/train.bin"):
+    def __init__(self, batch_size, seq_len, data_path="data/processed/train.bin"):
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.data = np.memmap(data_path, dtype=np.uint16, mode='r')
@@ -93,8 +93,9 @@ if __name__ == "__main__":
 
     start_step = 0
     if os.path.exists("checkpoints/latest.pt"):
-        checkpoint = torch.load("checkpoints/latest.pt")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        checkpoint = torch.load("checkpoints/latest.pt", map_location=device)
+        target_model = model._orig_mod if hasattr(model, '_orig_mod') else model
+        target_model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         start_step = checkpoint["step"] + 1
@@ -125,7 +126,7 @@ if __name__ == "__main__":
         if step > 0 and step % CHECKPOINT_INTERVAL == 0:
             full_ckpt = {
                 "step": step,
-                "model_state_dict": model.state_dict(),
+                "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
                 "loss": loss,
@@ -134,7 +135,10 @@ if __name__ == "__main__":
             
             if step in MILESTONE_STEPS:
                 torch.save(
-                    {"step": step, "model_state_dict": model.state_dict()},
+                    {
+                        "step": step,
+                        "model_state_dict": model._orig_mod.state_dict() if hasattr(model, '_orig_mod') else model.state_dict()
+                    },
                     f"checkpoints/milestone_{step}.pt"
                 )
             else:
