@@ -17,4 +17,5 @@ __pycache__/
 
 # Ignore data files
 data/processed
+data/processed_v2
 tokenizer/training_data/
