@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     quotas = [d["token_quota"] for d in DATASETS]
     consumed = [0, 0, 0, 0]
-    weights = [0.6, 0.2, 0.15, 0.05]
+    weights = [0.6, 0.15, 0.15, 0.10]
     chunk_buffers = [deque() for _ in range(len(DATASETS))]
 
     streams = []
