@@ -2,7 +2,7 @@ import numpy as np
 from tokenizers import Tokenizer
 
 tokenizer = Tokenizer.from_file("tokenizer/shakgpt_tokenizer.json")
-data = np.memmap("data/processed/train.bin", dtype=np.uint16, mode='r')
+data = np.memmap("data/processed_v2/train.bin", dtype=np.uint16, mode='r')
 print(f"Total tokens in train.bin: {len(data):,}\n")
 
 # Check 1: Source variety at random offsets
