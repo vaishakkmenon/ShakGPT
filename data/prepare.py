@@ -13,20 +13,21 @@ TRAIN_FILE = "train.bin"
 VALIDATION_FILE = "val.bin"
 
 # Training Token Targets
-FINEWEB_TARGET = 4_200_000_000      # 60% of 7B tokens
-WIKIPEDIA_TARGET = 1_400_000_000    # 20% of 7B tokens
-GUTENBERG_TARGET = 1_050_000_000    # 15% of 7B tokens
-STARCODER_TARGET = 350_000_000      # 5% of 7B tokens
+# FINEWEB_TARGET = 4_200_000_000      # 60% of 7B tokens
+# WIKIPEDIA_TARGET = 1_400_000_000    # 20% of 7B tokens
+# GUTENBERG_TARGET = 1_050_000_000    # 15% of 7B tokens
+# STARCODER_TARGET = 350_000_000      # 5% of 7B tokens
 
 # Test Run Token Targets
-# FINEWEB_TARGET = 10_000_000      # 60% of 7B tokens
-# WIKIPEDIA_TARGET = 10_000_000    # 20% of 7B tokens
-# GUTENBERG_TARGET = 10_000_000    # 15% of 7B tokens
-# STARCODER_TARGET = 10_000_000      # 5% of 7B tokens
+FINEWEB_TARGET = 10_000_000      # 60% of 7B tokens
+WIKIPEDIA_TARGET = 10_000_000    # 20% of 7B tokens
+GUTENBERG_TARGET = 10_000_000    # 15% of 7B tokens
+STARCODER_TARGET = 10_000_000      # 5% of 7B tokens
 
 BOS_TOKEN_ID = 1
 EOS_TOKEN_ID = 2
 BATCH_SIZE_DOCS = 64
+MAX_DOC_TOKENS = 8192
 
 DATASETS = [
     {
@@ -111,28 +112,31 @@ if __name__ == "__main__":
             encoded_list = tokenizer.encode_batch(docs_to_tokenize)
             
             for encoded_obj, source in zip(encoded_list, sources_for_docs):
-                encoded = [BOS_TOKEN_ID] + encoded_obj.ids + [EOS_TOKEN_ID]
-                
                 if DATASETS[source].get("finished"):
                     continue
                 
-                if consumed[source] + len(encoded) > quotas[source]:
-                    DATASETS[source]["finished"] = True
-                    continue
+                raw_tokens = encoded_obj.ids
+                raw_chunks = [raw_tokens[i:i + MAX_DOC_TOKENS - 2] for i in range(0, len(raw_tokens), MAX_DOC_TOKENS - 2)]
                 
-                arr = np.array(encoded, dtype=np.uint16)
-                
-                if random.random() < 0.01:
-                    arr.tofile(val_bf)
-                else:
-                    arr.tofile(train_bf)
-                
-                consumed[source] += len(encoded)
-                
-                total_consumed = sum(consumed)
-                if total_consumed // 100_000_000 > (total_consumed - len(encoded)) // 100_000_000:
-                    pct = total_consumed / sum(quotas) * 100
-                    print(f"Progress: {pct:.1f}% — consumed: {consumed}")
+                for raw_chunk in raw_chunks:
+                    chunk = [BOS_TOKEN_ID] + raw_chunk + [EOS_TOKEN_ID]
+                    
+                    if consumed[source] + len(chunk) > quotas[source]:
+                        DATASETS[source]["finished"] = True
+                        break
+                    
+                    arr = np.array(chunk, dtype=np.uint16)
+                    if random.random() < 0.01:
+                        arr.tofile(val_bf)
+                    else:
+                        arr.tofile(train_bf)
+                    
+                    consumed[source] += len(chunk)
+                    
+                    total_consumed = sum(consumed)
+                    if total_consumed // 100_000_000 > (total_consumed - len(chunk)) // 100_000_000:
+                        pct = total_consumed / sum(quotas) * 100
+                        print(f"Progress: {pct:.1f}% — consumed: {consumed}")
     
     print("Both files have been processed and closed.")
 
